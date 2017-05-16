@@ -1,0 +1,2 @@
+model_checkpoint_path: "thick.pd"
+all_model_checkpoint_paths: "thick.pd"

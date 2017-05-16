@@ -1,0 +1,170 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>da2160d5-1e77-4900-b28b-0619bee67a80</ProjectGuid>
+    <ProjectHome>.</ProjectHome>
+    <StartupFile>Color\Train.py</StartupFile>
+    <SearchPath>
+    </SearchPath>
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <Name>PythonApplication5</Name>
+    <RootNamespace>PythonApplication5</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Color\DataReader.py" />
+    <Compile Include="Color\Model_concat.py" />
+    <Compile Include="Color\Model_helper.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Color\Model_2loss.py" />
+    <Compile Include="Color\Model_aug.py" />
+    <Compile Include="Color\Model_frru.py" />
+    <Compile Include="Color\Model_morp.py" />
+    <Compile Include="Color\Model_thick.py" />
+    <Compile Include="Color\Model_RoI_share.py" />
+    <Compile Include="Color\Model_RoI.py" />
+    <Compile Include="Color\Model_narrow_depthwise_fullRes.py" />
+    <Compile Include="Color\Model_narrow_depthwise_goLast.py" />
+    <Compile Include="Color\Model_narrow_depthwise_bigKernel.py" />
+    <Compile Include="Color\Model_narrow_depthwise_noPool.py" />
+    <Compile Include="Color\Model_narrow_depthwise_cut.py" />
+    <Compile Include="Color\Model_narrow_depthwise_uni.py" />
+    <Compile Include="Color\Model_narrow_depthwise_maxArg_const.py" />
+    <Compile Include="Color\Model_narrow_depthwise_maxArg.py" />
+    <Compile Include="Color\Model_narrow_depthwise.py" />
+    <Compile Include="Color\Model_narrow_deconv_half.py" />
+    <Compile Include="Color\Model_narrow_deconv.py" />
+    <Compile Include="Color\SaveVariables.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Color\TestDataReader.py" />
+    <Compile Include="Color\Test.py" />
+    <Compile Include="Color\Train_RoI.py" />
+    <Compile Include="Color\Train_with_helper.py" />
+    <Compile Include="Color\Train_2loss.py" />
+    <Compile Include="Color\Train.py" />
+    <Compile Include="Color\Model_narrow.py" />
+    <Compile Include="DAS\DataReader.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DAS\TestDataReader.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DAS\Train2.py" />
+    <Compile Include="DAS\Train.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DAS\TrainConcat5FromHalf.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DAS\Train2loss.py" />
+    <Compile Include="DAS\TrainRes.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DAS\TrainSkip3.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ROI\LinearRegressionTest2Vector.py" />
+    <Compile Include="Trimap\DataReader.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Trimap\MakeTrimap.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Trimap\Test_Morpology.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tutorial\BatchTest.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tutorial\f1Score.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tutorial\homeWork2.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tutorial\LinearRegressionPlot.py" />
+    <Compile Include="Tutorial\LinearRegressionTest2Vector.py" />
+    <Compile Include="Tutorial\LinearRegressionTest2.py" />
+    <Compile Include="Tutorial\LinearRegressionTest.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tutorial\max_matrix.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tutorial\NeuralNetForPredict.py" />
+    <Compile Include="Tutorial\NeuralNetForXOR.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tutorial\Normalize.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tutorial\pooling_max_index.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tutorial\Precision.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tutorial\PythonApplication5.py" />
+    <Compile Include="Tutorial\Read_CSV.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tutorial\ReturnTest.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tutorial\ReverseArray.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tutorial\Tensor_Manipulation.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tutorial\TestList.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tutorial\vector_mul.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tutorial\word2vec_basic.py">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Color\weights\" />
+    <Folder Include="Color\weights\featureMap\" />
+    <Folder Include="DAS\" />
+    <Folder Include="DAS\weights\" />
+    <Folder Include="Color\" />
+    <Folder Include="ROI\" />
+    <Folder Include="Trimap\" />
+    <Folder Include="Score\" />
+    <Folder Include="Tutorial\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Score\Score.txt" />
+  </ItemGroup>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
+    <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>
+  </PropertyGroup>
+  <Import Condition="Exists($(PtvsTargetsFile))" Project="$(PtvsTargetsFile)" />
+  <Import Condition="!Exists($(PtvsTargetsFile))" Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
+  <!-- Uncomment the CoreCompile target to enable the Build command in
+       Visual Studio and specify your pre- and post-build commands in
+       the BeforeBuild and AfterBuild targets below. -->
+  <!--<Target Name="CoreCompile" />-->
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+</Project>
