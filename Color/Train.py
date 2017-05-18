@@ -11,7 +11,7 @@ from six.moves import xrange
 import tensorflow as tf
 from operator import or_
 from DataReader import DataReader
-import Model_thick as model 
+import Model_narrow as model 
 
 hiddenImagePath = "./Color/weights/hidden/"
 predictImagePath = "./Color/weights/predict"
@@ -22,7 +22,7 @@ DataReader = DataReader()
 EVAL_BATCH_SIZE = 10
 EVAL_FREQUENCY = 5
 AUGMENT = 2
-DATA_SIZE = 10#360+131+130 #max 360 + 131 + 130 = 621
+DATA_SIZE = 100#360+131+130 #max 360 + 131 + 130 = 621
 BATCH_SIZE = np.int(DATA_SIZE / 2)  # * AUGMENT
 NUM_EPOCHS = 10
 isNewTrain = not True                 
@@ -35,27 +35,15 @@ def main(argv=None):
   print("train_labels.shape", train_labels.shape)
   print("test_data.shape", test_data.shape)
   
-  train_size = train_data.shape[0]        
-  batch_train_in_shape  = [BATCH_SIZE,train_data.shape[1],train_data.shape[2],train_data.shape[3]]
-  batch_train_out_shape = [BATCH_SIZE,train_labels.shape[1],train_labels.shape[2]]
-  train_data_node = tf.placeholder(tf.float32, shape=batch_train_in_shape)
-  train_labels_node = tf.placeholder(tf.int32, shape=batch_train_out_shape)
-  test_data_node = tf.placeholder(tf.float32, shape=test_data.shape)
-  test_labels_node = tf.placeholder(tf.int32, shape=test_labels.shape)
-    
-  train_prediction, train_feature_map = model.inference(train_data_node, True)  
-  test_prediction, test_feature_map = model.inference(test_data, True)  
-  entropy = getLoss(train_prediction, train_labels_node)
-  loss = entropy + 1e-5 * regullarizer()  
+  train_size = train_data.shape[0]          
+  X = tf.placeholder(tf.float32, [None,train_data.shape[1],train_data.shape[2],train_data.shape[3]])
+  Y = tf.placeholder(tf.int32, [None,train_labels.shape[1],train_labels.shape[2]])
   
-  argMax = tf.cast( tf.arg_max(train_prediction,3), tf.int32)
-  accuracy = tf.contrib.metrics.accuracy(argMax,train_labels_node)    
-  
-  test_argMax = tf.cast( tf.arg_max(test_prediction,3), tf.int32)  
-  test_accuracy = tf.contrib.metrics.accuracy(test_argMax,test_labels_node)    
-  
-  #tf.scalar_summary("loss", loss)
-
+  prediction, feature_map = model.inference(X, True)    
+  entropy = getLoss(prediction, Y)
+  loss = entropy + 1e-6 * regullarizer()    
+  argMax = tf.cast( tf.arg_max(prediction,3), tf.int32)
+  accuracy = tf.contrib.metrics.accuracy(argMax,Y)   
   batch = tf.Variable(0)
   LearningRate = 0.01
   DecayRate = 0.999
@@ -114,20 +102,17 @@ def main(argv=None):
     
       # This dictionary maps the batch data (as a np array) to the
       # node in the graph it should be fed to.
-      feed_dict = {train_data_node: train_data[offset:(offset + BATCH_SIZE)], 
-                   train_labels_node: train_labels[offset:(offset + BATCH_SIZE)]}
-      # Run the graph and fetch some of the nodes.
-      _, l,acc, lr, predictions = sess.run(
-          [optimizer, entropy, accuracy, learning_rate, train_prediction], feed_dict=feed_dict)
+      feed_dict = {X: train_data[offset:(offset + BATCH_SIZE)],Y: train_labels[offset:(offset + BATCH_SIZE)]}      
+      _, l,acc, lr = sess.run([optimizer, entropy, accuracy, learning_rate], feed_dict)
       #summary_writer.add_summary(summary, step)
       if step % EVAL_FREQUENCY == 0:
         elapsed_time = time.time() - start_time
         start_time = time.time()
         now = strftime("%H:%M:%S", localtime())
         takes = 1000 * elapsed_time / EVAL_FREQUENCY
-        feed_dict_test = {test_data_node: test_data, test_labels_node: test_labels}
-        test_acc = sess.run(test_accuracy, feed_dict=feed_dict_test)
-        print('%d/%.1f, %.0f ms, loss %f, acc %.1f, %.1f, lr %.4f, %s' % 
+        feed_dict_test = {X: test_data, Y: test_labels}
+        test_acc = sess.run(accuracy, feed_dict_test)
+        print('%d/%.1f, %.0f ms, loss %f, acc %.2f, %.2f, lr %.4f, %s' % 
               (step, float(step) * BATCH_SIZE / train_size,takes,l,acc*100, test_acc*100,lr*100,now))        
                  
         # Add histograms for trainable variables.
@@ -152,15 +137,11 @@ def main(argv=None):
         save_path = saver.save(sess, model.modelName)
         print ('save_path', save_path)      
             
-    predict_test,test_feature_map = sess.run(model.inference(test_data))
-    test_acc = sess.run(test_accuracy, feed_dict=feed_dict_test)
-    print('accuracy train:%.2f, test:%.2f' % (acc, test_acc))            
-    pred = np.array(np.argmin(predict_test,3), int)
-    print('pred ' , pred .shape)    
-    predict_test = np.array(predict_test)
-    print('predict_test' , predict_test.shape)         
-    DataReader.SaveAsImage(predict_test[:,:,:,1], predictImagePath, EVAL_BATCH_SIZE, maxCount = 10)
-    #DataReader.SaveFeatureMap(test_feature_map, "./Color/weights/featureMap/fm", EVAL_BATCH_SIZE, maxCount = 1)
+    print('accuracy train:%.2f, test:%.2f' % (acc, test_acc))                    
+    predict,feature_map = sess.run(model.inference(test_data))
+    #predict,feature_map,test_acc = sess.run([prediction, feature_map,accuracy], feed_dict=feed_dict_test)
+    DataReader.SaveAsImage(predict[:,:,:,1], predictImagePath, EVAL_BATCH_SIZE, maxCount = 10)
+    #DataReader.SaveFeatureMap(feature_map, "./Color/weights/featureMap/fm", EVAL_BATCH_SIZE, maxCount = 1)
 
 
 def getLoss(prediction,labels_node):    
