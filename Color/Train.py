@@ -21,11 +21,11 @@ inImagePath = "./Color/weights/in"
 DataReader = DataReader()
 EVAL_BATCH_SIZE = 10
 EVAL_FREQUENCY = 5
-AUGMENT = 2
+AUGMENT = 4
 DATA_SIZE = 100#360+131+130 #max 360 + 131 + 130 = 621
 BATCH_SIZE = np.int(DATA_SIZE / 2)  # * AUGMENT
-NUM_EPOCHS = 100
-isNewTrain = not  True                 
+NUM_EPOCHS = 20
+isNewTrain = not True                 
 #82 43%
 def main(argv=None):        
   train_data, train_labels,train_help = DataReader.GetDataAug(DATA_SIZE, AUGMENT, isTrain =  True);  
@@ -44,9 +44,8 @@ def main(argv=None):
   accuracy = tf.contrib.metrics.accuracy(argMax,Y)     
   mean_iou = getIoU(Y,argMax)
   entropy = getLoss(prediction, Y)
-  loss_iou = 1 - mean_iou 
-  loss = loss_iou/100*mean_iou + entropy + 1e-6 * regullarizer()    
-  #loss = entropy + 1e-6 * regullarizer()    
+  loss_iou = 1 - mean_iou   
+  loss = entropy + 1e-6 * regullarizer()    
   batch = tf.Variable(0)
   LearningRate = 0.01
   DecayRate = 0.999
