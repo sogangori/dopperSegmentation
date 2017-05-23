@@ -279,7 +279,7 @@ class DataReader():
  
     def SaveAsImage(self, src, filePath, count, maxCount=1):
         ext = ".png"        
-        print ("SaveAsImage","maxCount:", maxCount, src.shape, filePath, ext)
+        print ("SaveAsImage","maxCount:", maxCount, src.shape, filePath, ext, np.min(src), np.max(src))
         
         for i in range(0, np.minimum( count,maxCount)):            
             img = toimage(src[i,:])
@@ -300,9 +300,8 @@ class DataReader():
                 img.save( fileName ) 
 
     def SaveFeatureMap(self, srcList, filePath, count, maxCount=1):
-        ext = ".png"        
-        
-        print ("SaveFeatureMap","count","maxCount:",count, maxCount, len(srcList), filePath, ext)
+        ext = ".png"                
+        print ("SaveFeatureMap","count","maxCount:",count, maxCount, len(srcList), filePath, ext, np.min(src), np.max(src))
         for n in range(len(srcList)):
             bach_data = np.array( srcList[n])
             for i in range(maxCount):
@@ -317,5 +316,3 @@ class DataReader():
                 one_data = np.reshape(one_data, shape )
                 img = toimage(one_data)                                
                 img.save( fileName ) 
-                
-        

@@ -1,6 +1,6 @@
 ﻿import tensorflow as tf
 import numpy as np
-import Model_narrow as model 
+import Model_bn_narrow as model 
 import pickle
 
 sess = tf.Session()

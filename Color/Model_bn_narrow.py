@@ -16,6 +16,7 @@ modelName = "./Color/weights/bn_narrow3.pd"
 LABEL_SIZE_C = 2
 NUM_CHANNELS_In= 3
 pool_stride2 =[1, 2, 2, 1]
+pool_stride3 =[1, 3, 3, 1]
 depth0 = 6
 
 #depth 1 : 86%, 82% loss 0.15x shape bad
@@ -78,25 +79,20 @@ conv_l3_weights = tf.get_variable("l3", shape=[3, 3, depth0, LABEL_SIZE_C], init
 beta_l3 = tf.Variable(tf.constant(0.0, shape=[LABEL_SIZE_C]),trainable=True)
 gamma_l3 = tf.Variable(tf.constant(1.0, shape=[LABEL_SIZE_C]), trainable=True) 
 
-beta4 = tf.Variable(tf.constant(0.0, shape=[depth0]),name='beta4', trainable=True)
-gamma4 = tf.Variable(tf.constant(1.0, shape=[depth0]),name='gamma4', trainable=True) 
+def Get(src):
+    return src
 
-
-beta6 = tf.Variable(tf.constant(0.0, shape=[depth0]),name='beta6', trainable=True)
-gamma6 = tf.Variable(tf.constant(1.0, shape=[depth0]),name='gamma6', trainable=True) 
-
-beta7 = tf.Variable(tf.constant(0.0, shape=[depth0]),name='beta7', trainable=True)
-gamma7 = tf.Variable(tf.constant(1.0, shape=[depth0]),name='gamma7', trainable=True) 
-step = 0
-
-def inference(inData, train = False):
-    helper.isDrop = False
-    helper.keep_prop = 0.9
+def inference(inData, train,step):
+    helper.isDrop = train
+    helper.keep_prop = 0.6
+    #Todo Error
+    #inData = tf.cond(train, lambda: helper.Gaussian_noise_Add(inData, 0.1, 0.2),lambda: tf.multiply(inData ,1.0))
+    #if train and step > 2: inData = helper.Gaussian_noise_Add(inData, 0.1, 0.2)
     
     featureMap = []
     in2 = inData = tf.multiply(inData ,1.0)
-    if step%3==1:  in2= tf.nn.avg_pool(inData,pool_stride2,strides=pool_stride2,padding='SAME')
-    #elif step%3==2:in2= tf.nn.avg_pool(inData,pool_stride3,strides=pool_stride3,padding='SAME')
+    if step%3==1: in2= tf.nn.avg_pool(inData,pool_stride2,strides=pool_stride2,padding='SAME')
+    elif step%3==2:in2= tf.nn.avg_pool(inData,pool_stride3,strides=pool_stride3,padding='SAME')
     feature1 = pool = helper.conv2dBN_Relu(in2,conv_l0_weights,beta_l0,gamma_l0,train)
 
     #1/4
@@ -159,12 +155,7 @@ def inference(inData, train = False):
     pool = helper.conv2dBN_Relu(pool,conv_m2_weights,beta_m2,gamma_m2, train)
     pool = helper.conv2dBN_Relu(pool,conv_l2_weights,beta_l2,gamma_l2, train)
     pool = helper.conv2dBN_Relu(pool,conv_l3_weights,beta_l3,gamma_l3, train)
-  
     input_shape = inData.get_shape().as_list()
     pool = helper.resize(pool,input_shape[1] ,input_shape[2])
-    if train!= True: 
-        pool = tf.reshape(pool, [-1,LABEL_SIZE_C])
-        pool = tf.nn.softmax(pool)
-        input_shape[3] = LABEL_SIZE_C
-        pool = tf.reshape(pool, input_shape)
+    
     return pool,featureMap; 

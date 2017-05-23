@@ -4,6 +4,13 @@ import time
 keep_prop = 1.0
 isDrop = False
 
+
+def dropout(src,keep_prop):
+    return tf.nn.dropout(src, keep_prop, seed=time.time())
+
+def identity(src):
+    return src
+
 def resize(src, dstH, dstW,interpol = 1):
     
     if interpol == 0: return tf.image.resize_nearest_neighbor(src, [dstH, dstW])
@@ -56,3 +63,32 @@ def depthwiseConv2dRelu(src, weights, bias):
     output = tf.nn.bias_add(output, bias)
     output = tf.nn.relu(output)
     return output 
+
+def batchNormal(src, beta,gamma):
+    batch_mean, batch_var = tf.nn.moments(x=src,axes=[0,1,2])
+    out = tf.nn.batch_normalization(x=src, mean=batch_mean, variance=batch_var,offset=beta,scale=gamma,variance_epsilon=1e-3)    
+    return tf.nn.relu(out) 
+
+def batch_norm(src, beta, gamma, isTrain):
+    batch_mean, batch_var = tf.nn.moments(x=src,axes=[0,1,2])
+    ema = tf.train.ExponentialMovingAverage(decay=0.5)
+
+    def mean_var_with_update():
+        ema_apply_op = ema.apply([batch_mean, batch_var])
+
+        with tf.control_dependencies([ema_apply_op]):
+
+            return tf.identity(batch_mean), tf.identity(batch_var)
+    mean, var = tf.cond(isTrain, mean_var_with_update, lambda:(ema.average(batch_mean),ema.average(batch_var)))    
+    return tf.nn.batch_normalization(src, mean,var, beta, gamma,1e-3)
+
+def conv2dBN(src, weights, beta,gamma, isTrain):
+    src = tf.cond(isTrain, lambda:dropout(src, keep_prop),lambda:identity(src))
+    conv = tf.nn.conv2d(src,weights,strides=[1, 1, 1, 1],padding='SAME')
+    return batchNormal(conv,beta,gamma)
+
+def conv2dBN_Relu(src, weights, beta,gamma, isTrain):
+    src_s = tf.cond(isTrain, lambda:dropout(src, keep_prop),lambda:identity(src))
+    conv = tf.nn.conv2d(src_s,weights,strides=[1, 1, 1, 1],padding='SAME')
+    bn = batchNormal(conv,beta,gamma)
+    return tf.nn.relu(bn)
