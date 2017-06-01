@@ -14,7 +14,7 @@ import Model_helper as helper
 
 modelName = "./DAS_COLOR/weights/narrow_helper.pd"#narrow_
 LABEL_SIZE_C = 2
-NUM_CHANNELS_In= 3
+ensemble= 3
 pool_stride2 =[1, 2, 2, 1]
 pool_stride3 =[1, 3, 3, 1]
 depth0 = 3
@@ -23,7 +23,7 @@ depth0 = 3
 #depth 2, Aug x2 : 85%, 82% loss 0.114x shape good
 #depth 2, Aug x3~x4 : 83%, 80% loss 0.041x 
 
-conv_l0_weights  = tf.get_variable("w1", shape=[3, 3, NUM_CHANNELS_In, depth0], initializer =tf.contrib.layers.xavier_initializer())
+conv_l0_weights  = tf.get_variable("w1", shape=[3, 3, ensemble, depth0], initializer =tf.contrib.layers.xavier_initializer())
 conv_l0_biases = tf.Variable(tf.zeros([depth0]))
 
 conv_m0_weights = tf.get_variable("m0", shape=[3, 3, depth0, depth0], initializer =tf.contrib.layers.xavier_initializer())
@@ -65,17 +65,11 @@ conv_l2_biases = tf.Variable(tf.zeros([depth0]))
 conv_l3_weights = tf.get_variable("l3", shape=[3, 3, depth0, LABEL_SIZE_C], initializer =tf.contrib.layers.xavier_initializer())
 conv_l3_biases = tf.Variable(tf.zeros([LABEL_SIZE_C]))
 
-step=0
-
 def inference(inData, train, step):
     helper.isDrop = train
     helper.keep_prop = 0.6
-    
-    in2 = inData[:,:,:,0:3]
-    
-    #if step%3==1:  in2= tf.nn.avg_pool(inData,pool_stride2,strides=pool_stride2,padding='SAME')
-    #elif step%3==2:in2= tf.nn.avg_pool(inData,pool_stride3,strides=pool_stride3,padding='SAME')
-    
+   
+    in2  = inData
     #if train: inData = helper.Gaussian_noise_layer(inData, 0.1)
     
     #1/2    

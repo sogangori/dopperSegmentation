@@ -19,24 +19,28 @@ outImagePath = "./DAS_COLOR/weights/out"
 inImagePath = "./DAS_COLOR/weights/in"
 
 DataReader = DataReader()
-EVAL_BATCH_SIZE = 2
-EVAL_FREQUENCY = 5
+EVAL_FREQUENCY = 20
 AUGMENT = 1
-DATA_SIZE = 2
-BATCH_SIZE = np.int(DATA_SIZE/2)  # * AUGMENT
-NUM_EPOCHS = 100
+DATA_SIZE = 12
+EVAL_BATCH_SIZE = DATA_SIZE 
+BATCH_SIZE = np.int(DATA_SIZE)  # * AUGMENT 
+NUM_EPOCHS = 1
+test_ratio = 0.2
 isNewTrain = not True      
 
 def main(argv=None):        
+
   train_data, train_labels = DataReader.GetData(DATA_SIZE);  
-  test_data, test_labels = DataReader.GetData(EVAL_BATCH_SIZE);  
-  
+    
   print("train_data.shape", train_data.shape)
   print("train_labels.shape", train_labels.shape)
-  print("test_data.shape", test_data.shape)
-  
+    
   train_size = train_data.shape[0]          
-  X = tf.placeholder(tf.float32, [None,train_data.shape[1],train_data.shape[2],train_data.shape[3]])
+  test_offset = np.int(train_data.shape[3]* (1.0 - test_ratio))
+  test_count = train_size - test_offset
+  print ('test_offset',test_offset,'test_count',test_count)
+  ensemble = model.ensemble  
+  X = tf.placeholder(tf.float32, [None,train_data.shape[1],train_data.shape[2],ensemble])
   Y = tf.placeholder(tf.int32, [None,train_labels.shape[1],train_labels.shape[2]])
   IsTrain = tf.placeholder(tf.bool)
   Step = tf.placeholder(tf.int32)
@@ -45,8 +49,7 @@ def main(argv=None):
   argMax = tf.cast( tf.arg_max(prediction,3), tf.int32)
   accuracy = tf.contrib.metrics.accuracy(argMax,Y)     
   mean_iou = getIoU(Y,argMax)
-  entropy = getLoss(prediction, Y)
-  loss_iou = 1 - mean_iou   
+  entropy = getLoss(prediction, Y)  
   loss = entropy + 1e-5 * regularizer()    
   batch = tf.Variable(0)
   LearningRate = 0.01
@@ -60,25 +63,7 @@ def main(argv=None):
       staircase=True)
   
   # Use simple momentum for the optimization.
-  optimizer = tf.train.AdamOptimizer(learning_rate).minimize(loss, global_step=batch)
- 
-  def eval_in_batches(data, sess):
-    """Get all predictions for a dataset by running it in small batches."""
-    size = data.shape[0]
-    if size < EVAL_BATCH_SIZE:
-      raise ValueError("batch size for evals larger than dataset: %d" % size)
-    NUM_LABELS = train_labels.shape[1] * train_labels.shape[2]
-    predictions = np.ndarray(shape=(size, NUM_LABELS), dtype=np.float32)
-    for begin in xrange(0, size, EVAL_BATCH_SIZE):
-      end = begin + EVAL_BATCH_SIZE
-      if end <= size:
-        predictions[begin:end, :] = sess.run(
-            eval_prediction, feed_dict={eval_data: data[begin:end, ...]})
-      else:
-        batch_predictions = sess.run(
-            eval_prediction,feed_dict={eval_data: data[-EVAL_BATCH_SIZE:, ...]})
-        predictions[begin:, :] = batch_predictions[begin - size:, :]
-    return predictions
+  optimizer = tf.train.AdamOptimizer(learning_rate).minimize(loss, global_step=batch) 
 
   start_sec = start_time = time.time()
   config=tf.ConfigProto()
@@ -107,42 +92,49 @@ def main(argv=None):
       # This dictionary maps the batch data (as a np array) to the
       # node in the graph it should be fed to.
       model.step = step
-      feed_dict = {X: train_data[offset:(offset + BATCH_SIZE)],
-                   Y: train_labels[offset:(offset + BATCH_SIZE)],
-                   IsTrain:True,Step:step}      
-      _, l,l2,acc, iou,lr = sess.run([optimizer, entropy,loss_iou, accuracy,mean_iou, learning_rate], feed_dict)
-      #summary_writer.add_summary(summary, step)
-      if step % EVAL_FREQUENCY == 0:
-        elapsed_time = time.time() - start_time
-        start_time = time.time()
-        now = strftime("%H:%M:%S", localtime())
-        takes = 1000 * elapsed_time / EVAL_FREQUENCY
-        feed_dict_test = {X: test_data, Y: test_labels,IsTrain:False,Step:0}
-        iou_test = sess.run(mean_iou, feed_dict_test)
-        
-        print('%d/%.1f, %.0f ms, loss(%.3f,%.3f),IoU(%g,%.3f),lr %.4f, %s' % 
-              (step, float(step) * BATCH_SIZE / train_size,takes,l,l2,iou,iou_test, lr*100,now))   
-        # Add histograms for trainable variables.
-        #for var in tf.trainable_variables(): tf.histogram_summary(var.op.name, var)
-    
-        sys.stdout.flush()
-        if lr==0 or l>20: 
-            print ('lr l has problem  ',lr) 
-            return
-        
-        this_sec = time.time()
-        if this_sec - start_sec > 60 * 20 :
-            start_sec = this_sec
-            save_path = saver.save(sess, model.modelName)
+      
+      for iter in range(test_offset):
+          
+          ensemble_start = iter % (test_offset-ensemble+1) 
+          batch_data = train_data[:,:,:,ensemble_start:ensemble_start + ensemble]          
+          feed_dict = {X: batch_data[offset:(offset + BATCH_SIZE)],
+                       Y: train_labels[offset:(offset + BATCH_SIZE)],
+                       IsTrain:True,Step:step}      
+          _, l,acc, iou,lr = sess.run([optimizer, entropy, accuracy,mean_iou, learning_rate], feed_dict)
+          #summary_writer.add_summary(summary, step)
+          if iter % EVAL_FREQUENCY == 0:
+            elapsed_time = time.time() - start_time
+            start_time = time.time()
             now = strftime("%H:%M:%S", localtime())
-            print("Model Saved, time:%s" %(now))      
+            takes = 1000 * elapsed_time / EVAL_FREQUENCY
+            #batch_data = train_data[:,:,:,test_offset:test_offset+iter% test_count]
+            batch_data = train_data[:,:,:,test_offset:test_offset+ensemble]
+            feed_dict_test = {X: batch_data, Y: train_labels, IsTrain :False,Step:0}
+            iou_test = sess.run(mean_iou, feed_dict_test)
         
-    if lr>0: 
+            print('%d/%.1f, %.0f ms, loss %.3f,IoU(%g,%.3f),lr %.4f, %s' % 
+                  (step, iter,takes,l,iou,iou_test, lr*100,now))   
+            # Add histograms for trainable variables.
+            #for var in tf.trainable_variables(): tf.histogram_summary(var.op.name, var)
+    
+            sys.stdout.flush()
+            if lr==0 or l>20: 
+                print ('lr l has problem  ',lr) 
+                return
+        
+            this_sec = time.time()
+            if this_sec - start_sec > 60 * 20 :
+                start_sec = this_sec
+                save_path = saver.save(sess, model.modelName)
+                now = strftime("%H:%M:%S", localtime())
+                print("Model Saved, time:%s" %(now))      
+        
+    if sess.run(learning_rate)>0: 
         save_path = saver.save(sess, model.modelName)
         print ('save_path', save_path)      
             
-    predict,test_acc = sess.run([prediction, accuracy], feed_dict=feed_dict_test)
-    print('accuracy train:%.2f, test:%.2f' % (iou, iou_test))                    
+    batch_data = train_data[:,:,:,200:203]
+    predict,test_acc = sess.run([prediction, accuracy], feed_dict= {X: batch_data, Y: train_labels, IsTrain :False,Step:0})    
     DataReader.SaveAsImage(predict[:,:,:,1], predictImagePath, EVAL_BATCH_SIZE)
     
 
