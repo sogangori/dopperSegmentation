@@ -14,10 +14,10 @@ import Model_helper as helper
 
 modelName = "./DAS_COLOR/weights/narrow_helper.pd"#narrow_
 LABEL_SIZE_C = 2
-ensemble= 3
+ensemble= 6
+depth0 = ensemble
 pool_stride2 =[1, 2, 2, 1]
 pool_stride3 =[1, 3, 3, 1]
-depth0 = 3
 
 #depth 1 : 86%, 82% loss 0.15x shape bad
 #depth 2, Aug x2 : 85%, 82% loss 0.114x shape good

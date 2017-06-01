@@ -24,8 +24,8 @@ AUGMENT = 1
 DATA_SIZE = 12
 EVAL_BATCH_SIZE = DATA_SIZE 
 BATCH_SIZE = np.int(DATA_SIZE)  # * AUGMENT 
-NUM_EPOCHS = 1
-test_ratio = 0.2
+NUM_EPOCHS = 20
+test_ratio = 0.95
 isNewTrain = not True      
 
 def main(argv=None):        
@@ -37,7 +37,7 @@ def main(argv=None):
     
   train_size = train_data.shape[0]          
   test_offset = np.int(train_data.shape[3]* (1.0 - test_ratio))
-  test_count = train_size - test_offset
+  test_count = train_data.shape[3] - test_offset
   print ('test_offset',test_offset,'test_count',test_count)
   ensemble = model.ensemble  
   X = tf.placeholder(tf.float32, [None,train_data.shape[1],train_data.shape[2],ensemble])
@@ -82,24 +82,13 @@ def main(argv=None):
     #summary_writer = tf.train.SummaryWriter(model.logName, sess.graph)
     #merged = tf.merge_all_summaries()
 
-    for step in xrange(int(NUM_EPOCHS * train_size) // BATCH_SIZE):
-      # Compute the offset of the current minibatch in the data.
-      # Note that we could use better randomization across epochs.
-      offset = 0
-      if train_size - BATCH_SIZE != 0:          
-          offset = (step * BATCH_SIZE) % (train_size - BATCH_SIZE)
-    
-      # This dictionary maps the batch data (as a np array) to the
-      # node in the graph it should be fed to.
-      model.step = step
-      
+    for step in xrange(NUM_EPOCHS):
+      model.step = step      
       for iter in range(test_offset):
           
           ensemble_start = iter % (test_offset-ensemble+1) 
           batch_data = train_data[:,:,:,ensemble_start:ensemble_start + ensemble]          
-          feed_dict = {X: batch_data[offset:(offset + BATCH_SIZE)],
-                       Y: train_labels[offset:(offset + BATCH_SIZE)],
-                       IsTrain:True,Step:step}      
+          feed_dict = {X: batch_data, Y: train_labels, IsTrain:True,Step:step}      
           _, l,acc, iou,lr = sess.run([optimizer, entropy, accuracy,mean_iou, learning_rate], feed_dict)
           #summary_writer.add_summary(summary, step)
           if iter % EVAL_FREQUENCY == 0:
@@ -107,7 +96,6 @@ def main(argv=None):
             start_time = time.time()
             now = strftime("%H:%M:%S", localtime())
             takes = 1000 * elapsed_time / EVAL_FREQUENCY
-            #batch_data = train_data[:,:,:,test_offset:test_offset+iter% test_count]
             batch_data = train_data[:,:,:,test_offset:test_offset+ensemble]
             feed_dict_test = {X: batch_data, Y: train_labels, IsTrain :False,Step:0}
             iou_test = sess.run(mean_iou, feed_dict_test)
@@ -133,7 +121,7 @@ def main(argv=None):
         save_path = saver.save(sess, model.modelName)
         print ('save_path', save_path)      
             
-    batch_data = train_data[:,:,:,200:203]
+    batch_data = train_data[:,:,:,test_offset:test_offset+ensemble]
     predict,test_acc = sess.run([prediction, accuracy], feed_dict= {X: batch_data, Y: train_labels, IsTrain :False,Step:0})    
     DataReader.SaveAsImage(predict[:,:,:,1], predictImagePath, EVAL_BATCH_SIZE)
     
