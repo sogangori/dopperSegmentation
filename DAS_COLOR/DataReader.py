@@ -9,6 +9,7 @@ class DataReader():
     
     folder ="C:/Users/pc/Documents/Visual Studio 2013/Projects/DopplerTrainPreProcess/IQApp_cuda/bin/x64/Debug/trainData"
     pathTrain = folder +"/das/*.dat"
+    #pathTrain = folder +"/das_threshold/*.dat"
     
     channel = 301
     inC = 300

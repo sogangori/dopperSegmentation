@@ -13,25 +13,27 @@ from operator import or_
 from DataReader import DataReader
 import Model_narrow as model 
 #http://angusg.com/writing/2016/12/28/optimizing-iou-semantic-segmentation.html
-hiddenImagePath = "./DAS_COLOR/weights/hidden/"
+hiddenImagePath = "./DAS_ /weights/hidden/"
 predictImagePath = "./DAS_COLOR/weights/predict"
 outImagePath = "./DAS_COLOR/weights/out"
 inImagePath = "./DAS_COLOR/weights/in"
 
 DataReader = DataReader()
-EVAL_BATCH_SIZE = 10
+EVAL_BATCH_SIZE = 2
 EVAL_FREQUENCY = 5
 AUGMENT = 1
-DATA_SIZE = 5
-BATCH_SIZE = np.int(DATA_SIZE)  # * AUGMENT
-NUM_EPOCHS = 50
-isNewTrain = True    
+DATA_SIZE = 2
+BATCH_SIZE = np.int(DATA_SIZE/2)  # * AUGMENT
+NUM_EPOCHS = 100
+isNewTrain = not True      
 
 def main(argv=None):        
-  train_data, train_labels= DataReader.GetData(DATA_SIZE);  
-    
+  train_data, train_labels = DataReader.GetData(DATA_SIZE);  
+  test_data, test_labels = DataReader.GetData(EVAL_BATCH_SIZE);  
+  
   print("train_data.shape", train_data.shape)
   print("train_labels.shape", train_labels.shape)
+  print("test_data.shape", test_data.shape)
   
   train_size = train_data.shape[0]          
   X = tf.placeholder(tf.float32, [None,train_data.shape[1],train_data.shape[2],train_data.shape[3]])
@@ -115,9 +117,7 @@ def main(argv=None):
         start_time = time.time()
         now = strftime("%H:%M:%S", localtime())
         takes = 1000 * elapsed_time / EVAL_FREQUENCY
-        feed_dict_test =  {X: train_data[offset:(offset + BATCH_SIZE)],
-                   Y: train_labels[offset:(offset + BATCH_SIZE)],
-                   IsTrain:True,Step:step} 
+        feed_dict_test = {X: test_data, Y: test_labels,IsTrain:False,Step:0}
         iou_test = sess.run(mean_iou, feed_dict_test)
         
         print('%d/%.1f, %.0f ms, loss(%.3f,%.3f),IoU(%g,%.3f),lr %.4f, %s' % 
@@ -141,9 +141,10 @@ def main(argv=None):
         save_path = saver.save(sess, model.modelName)
         print ('save_path', save_path)      
             
-    predict,test_acc = sess.run([prediction,accuracy], feed_dict=feed_dict_test)
+    predict,test_acc = sess.run([prediction, accuracy], feed_dict=feed_dict_test)
     print('accuracy train:%.2f, test:%.2f' % (iou, iou_test))                    
     DataReader.SaveAsImage(predict[:,:,:,1], predictImagePath, EVAL_BATCH_SIZE)
+    
 
 def getIoU(a,b):
     a = tf.round(a)    

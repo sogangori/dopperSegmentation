@@ -3,7 +3,7 @@ import numpy
 
 trainData = DataReader();
 
-inData,outData = trainData.GetData(1, isTrain =   True);
+inData,outData = trainData.GetData(1);
 
 
 print (inData.shape)
