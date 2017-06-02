@@ -31,6 +31,12 @@ class DataReader():
         src_normal = StandardScaler().fit_transform(src2d)
         src_back = np.reshape(src_normal,src_shape)
         return src_back
+        
+    def CutHeight(self, src):
+        startY= self.startY
+        dstH = self.dstH 
+        dst = src[:,startY:startY+dstH ,:]
+        return dst
 
     def GetData(self, count):
         
@@ -61,46 +67,20 @@ class DataReader():
         setIn = self.CutHeight(setIn)
         setOut = self.CutHeight(setOut)          
         return [setIn, setOut] 
-        
-    def CutHeight(self, src):
-        startY= self.startY
-        dstH = self.dstH 
-        dst = src[:,startY:startY+dstH ,:]
-        return dst
 
-    def GetDataAug(self, count, aug):
+    def Augment(self, src0, src1, aug):
         
-        w = self.w
-        h = self.h
-        c = self.inC        
-        channel = self.channel
-        path = self.pathTrain
-       
-        list = glob.glob(path)                
-        count = numpy.minimum(len(list), count)
-        print ("count", count)
-        
+        count = src0.shape[0]
+        h = src0.shape[1]
+        w = src0.shape[2]
+        c = src0.shape[3]
         setIn = numpy.zeros(shape=(count*aug,h,w,c), dtype=numpy.float32)
         setOut = numpy.zeros(shape=(count*aug,h,w), dtype=numpy.float32) 
-            
-        for n in range(0, count):
-            raw = np.fromfile(list[n], np.float32)  
-            print ('raw', count, n, raw.shape)
-            array = numpy.reshape(numpy.asarray(raw),[channel,h,w]);            
-            
-            for ch in range(0, c):
-                setIn[n][:,:,ch]= array[1+ch,:]                
-            
-            setOut[n][:]= array[0,:]
-
-        setIn = self.Normalize(setIn)
-        setIn = self.CutHeight(setIn)
-        setOut = self.CutHeight(setOut)       
-
+        print ('count',count)
         for n in range(0, count):            
             print ('augment ',n,'/',count)
-            setIn_one = setIn[n,:]
-            setOut_one = setOut[n,:]                
+            setIn[n,:] = setIn_one = src0[n,:]
+            setOut[n,:] = setOut_one = src1[n,:]                
             if aug > 1:
                 n1 = n+count
                 setIn[n1,:]= np.fliplr(setIn_one)
@@ -116,60 +96,9 @@ class DataReader():
         
         return [setIn, setOut]
 
-    def GetTrainDataToTensorflowRotateLR(self, batchCount, aug = 1, isTrain = True):
-        print ('GetTrainDataToTensorflowRotateLR', isTrain)
-        
-        path = self.pathTrain        
-        channel = self.channel
-        if not isTrain:
-            path = self.pathTest
-            self.h = 256                    
-        w = self.w
-        h = self.h        
-        
-        list = glob.glob(path)
-        #numpy.random.shuffle(list)
-        count = len(list)
-        print ("Original count", count, "batchCount",batchCount, path,h,w )
-        if count > batchCount: 
-            count = batchCount;                
-        
-        setIn = numpy.zeros(shape=(count*aug,h,w,self.inC), dtype=numpy.float32) 
-        setOut = numpy.zeros(shape=(count*aug,h,w), dtype=numpy.int32) 
-        print ("count * aug", count,aug)
-        
-        for n in range(0, count):
-            raw = np.fromfile(list[n], np.float32)            
-            array = numpy.reshape(numpy.asarray(raw),[channel,h,w]);
-            label = array[3,:,:]
-            
-            n0 = n*aug
-            n1 = n*aug+1
-            n2 = n*aug+2
-            for ch in range(0, self.inC):
-                               
-                setIn[n0][:,:,ch]= array[ch,:,:]
-                setOut[n0][:,:]= label
-                
-                if aug>=2:
-           
-                    for y in range(h):
-                        for x in range(w):                        
-                            index_y = y                        
-                            index_x = w-1-x                       
-                            setIn[n1][y,x,ch]= array[ch,index_y,index_x]
-                            label_v = label[index_y,index_x]
-                            setOut[n1][y,x]= label_v 
-                            if aug>=3:
-                                index_x2 = x                        
-                                index_y2 = h-1-y                        
-                                setIn[n2][y,x,ch]= array[ch,index_y2,index_x2]
-                                label_v2 = label[index_y2,index_x2]
-                                setOut[n2][y,x]= label_v2 
-               
-                    setIn[n1][:,:,ch] = setIn[n1][:,:,ch]
-            if aug>=3: setIn[n2][:,:,ch] = setIn[n2][:,:,ch]
-        return [setIn, setOut]   
+    def GetDataAug(self, count, aug):        
+        setIn, setOut = self.GetData(count)           
+        return self.Augment(setIn,setOut, aug) 
                   
     def SaveAsImage(self, src, filePath, count = 1):
         ext = ".png"        
