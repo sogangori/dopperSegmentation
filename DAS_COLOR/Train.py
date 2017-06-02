@@ -11,32 +11,33 @@ from six.moves import xrange
 import tensorflow as tf
 from operator import or_
 from DataReader import DataReader
-import Model_narrow as model 
+import Model_wide as model 
 #http://angusg.com/writing/2016/12/28/optimizing-iou-semantic-segmentation.html
-hiddenImagePath = "./DAS_ /weights/hidden/"
-predictImagePath = "./DAS_COLOR/weights/predict"
-outImagePath = "./DAS_COLOR/weights/out"
-inImagePath = "./DAS_COLOR/weights/in"
+folder = "./DAS_COLOR/weights/"
+hiddenImagePath = folder+"hidden/"
+predictImagePath = folder+"predict"
+outImagePath = folder+"out"
+inImagePath = folder+"in"
 
 DataReader = DataReader()
 EVAL_FREQUENCY = 20
 AUGMENT = 1
 DATA_SIZE = 12
-EVAL_BATCH_SIZE = DATA_SIZE 
-BATCH_SIZE = np.int(DATA_SIZE)  # * AUGMENT 
+EVAL_BATCH_SIZE = DATA_SIZE*AUGMENT  
+BATCH_SIZE = np.int(DATA_SIZE)
 NUM_EPOCHS = 20
 test_ratio = 0.95
-isNewTrain = not True      
+isNewTrain = True      
 
 def main(argv=None):        
 
-  train_data, train_labels = DataReader.GetData(DATA_SIZE);  
+  train_data, train_labels = DataReader.GetDataAug(DATA_SIZE,AUGMENT);  
     
   print("train_data.shape", train_data.shape)
   print("train_labels.shape", train_labels.shape)
     
   train_size = train_data.shape[0]          
-  test_offset = np.int(train_data.shape[3]* (1.0 - test_ratio))
+  test_offset = int(train_data.shape[3]* (1.0 - test_ratio))
   test_count = train_data.shape[3] - test_offset
   print ('test_offset',test_offset,'test_count',test_count)
   ensemble = model.ensemble  
@@ -50,9 +51,9 @@ def main(argv=None):
   accuracy = tf.contrib.metrics.accuracy(argMax,Y)     
   mean_iou = getIoU(Y,argMax)
   entropy = getLoss(prediction, Y)  
-  loss = entropy + 1e-5 * regularizer()    
+  loss = entropy + 1e-6 * regularizer()    
   batch = tf.Variable(0)
-  LearningRate = 0.01
+  LearningRate = 0.001
   DecayRate = 0.999
   
   learning_rate = tf.train.exponential_decay(
@@ -84,9 +85,9 @@ def main(argv=None):
 
     for step in xrange(NUM_EPOCHS):
       model.step = step      
-      for iter in range(test_offset):
+      for iter in range(0, test_offset):
           
-          ensemble_start = iter % (test_offset-ensemble+1) 
+          ensemble_start = iter % (test_offset-ensemble+1)  
           batch_data = train_data[:,:,:,ensemble_start:ensemble_start + ensemble]          
           feed_dict = {X: batch_data, Y: train_labels, IsTrain:True,Step:step}      
           _, l,acc, iou,lr = sess.run([optimizer, entropy, accuracy,mean_iou, learning_rate], feed_dict)
@@ -100,7 +101,7 @@ def main(argv=None):
             feed_dict_test = {X: batch_data, Y: train_labels, IsTrain :False,Step:0}
             iou_test = sess.run(mean_iou, feed_dict_test)
         
-            print('%d/%.1f, %.0f ms, loss %.3f,IoU(%g,%.3f),lr %.4f, %s' % 
+            print('%d/%d, %.0f ms, loss %.3f,IoU(%.3f,%.3f),lr %.4f, %s' % 
                   (step, iter,takes,l,iou,iou_test, lr*100,now))   
             # Add histograms for trainable variables.
             #for var in tf.trainable_variables(): tf.histogram_summary(var.op.name, var)
@@ -122,7 +123,7 @@ def main(argv=None):
         print ('save_path', save_path)      
             
     batch_data = train_data[:,:,:,test_offset:test_offset+ensemble]
-    predict,test_acc = sess.run([prediction, accuracy], feed_dict= {X: batch_data, Y: train_labels, IsTrain :False,Step:0})    
+    predict = sess.run(prediction, feed_dict= {X: batch_data, Y: train_labels, IsTrain :False,Step:0})    
     DataReader.SaveAsImage(predict[:,:,:,1], predictImagePath, EVAL_BATCH_SIZE)
     
 

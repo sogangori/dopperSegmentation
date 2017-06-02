@@ -15,6 +15,8 @@ class DataReader():
     inC = 300
     w = 256
     h = 256
+    startY =24
+    dstH = 156
             
     def __init__(self):
         print ("DataReader.py __init__") 
@@ -54,8 +56,65 @@ class DataReader():
                 setIn[n][:,:,ch]= array[1+ch,:]                
             
             setOut[n][:]= array[0,:]
+    
         setIn = self.Normalize(setIn)
-        return [setIn, setOut]    
+        setIn = self.CutHeight(setIn)
+        setOut = self.CutHeight(setOut)          
+        return [setIn, setOut] 
+        
+    def CutHeight(self, src):
+        startY= self.startY
+        dstH = self.dstH 
+        dst = src[:,startY:startY+dstH ,:]
+        return dst
+
+    def GetDataAug(self, count, aug):
+        
+        w = self.w
+        h = self.h
+        c = self.inC        
+        channel = self.channel
+        path = self.pathTrain
+       
+        list = glob.glob(path)                
+        count = numpy.minimum(len(list), count)
+        print ("count", count)
+        
+        setIn = numpy.zeros(shape=(count*aug,h,w,c), dtype=numpy.float32)
+        setOut = numpy.zeros(shape=(count*aug,h,w), dtype=numpy.float32) 
+            
+        for n in range(0, count):
+            raw = np.fromfile(list[n], np.float32)  
+            print ('raw', count, n, raw.shape)
+            array = numpy.reshape(numpy.asarray(raw),[channel,h,w]);            
+            
+            for ch in range(0, c):
+                setIn[n][:,:,ch]= array[1+ch,:]                
+            
+            setOut[n][:]= array[0,:]
+
+        setIn = self.Normalize(setIn)
+        setIn = self.CutHeight(setIn)
+        setOut = self.CutHeight(setOut)       
+
+        for n in range(0, count):            
+            print ('augment ',n,'/',count)
+            setIn_one = setIn[n,:]
+            setOut_one = setOut[n,:]                
+            if aug > 1:
+                n1 = n+count
+                setIn[n1,:]= np.fliplr(setIn_one)
+                setOut[n1,:]= np.fliplr(setOut_one) 
+            if aug > 2:
+                n2 = n+count*2
+                setIn[n2,:]= setIn_one[::-1]
+                setOut[n2,:]= setOut_one[::-1]
+            if aug > 3:
+                n3 = n+count*3
+                setIn[n3,:]= np.flipud(setIn_one)
+                setOut[n3,:]= np.flipud(setOut_one) 
+        
+        return [setIn, setOut]
 
     def GetTrainDataToTensorflowRotateLR(self, batchCount, aug = 1, isTrain = True):
         print ('GetTrainDataToTensorflowRotateLR', isTrain)

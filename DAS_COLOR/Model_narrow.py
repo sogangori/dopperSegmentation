@@ -12,9 +12,9 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 import Model_helper as helper
 
-modelName = "./DAS_COLOR/weights/narrow_helper.pd"#narrow_
+modelName = "./DAS_COLOR/weights/narrow12.pd"
 LABEL_SIZE_C = 2
-ensemble= 6
+ensemble= 12
 depth0 = ensemble
 pool_stride2 =[1, 2, 2, 1]
 pool_stride3 =[1, 3, 3, 1]

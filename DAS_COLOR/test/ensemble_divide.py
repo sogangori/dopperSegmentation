@@ -1,4 +1,4 @@
-import numpy as np
+﻿import numpy as np
 import tensorflow as tf
 
 ensemble = 3
@@ -12,3 +12,8 @@ for step in range(0,20):
     ensemble_end = ensemble_start + ensemble
     ensemble_src = a[ensemble_start:ensemble_end]
     print ('step', step,ensemble_start,ensemble_end,ensemble_src)
+
+
+a = 100/3
+
+print (a, np.int(a))

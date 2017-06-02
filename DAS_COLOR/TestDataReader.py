@@ -15,4 +15,4 @@ for n in range(0, inData.shape[0]):
 
 
 trainData.SaveAsImage(outData, "./DAS_COLOR/weights/out",outData.shape[0])
-#trainData.SaveAsImageByChannel(inData, "./DAS_COLOR/weights/in",)
+trainData.SaveAsImageByChannel(inData, "./DAS_COLOR/weights/in",)
