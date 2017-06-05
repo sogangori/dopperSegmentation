@@ -79,18 +79,22 @@ conv_l3_weights = tf.get_variable("l3", shape=[3, 3, depth0, LABEL_SIZE_C], init
 beta_l3 = tf.Variable(tf.constant(0.0, shape=[LABEL_SIZE_C]),trainable=True)
 gamma_l3 = tf.Variable(tf.constant(1.0, shape=[LABEL_SIZE_C]), trainable=True) 
 
-conv_u0_weights = tf.get_variable("u0", shape=[3, 3, LABEL_SIZE_C, LABEL_SIZE_C], initializer =tf.contrib.layers.xavier_initializer())
-beta_u0 = tf.Variable(tf.constant(0.0, shape=[LABEL_SIZE_C]),trainable=True)
+conv_u0_weights = tf.get_variable("u0", shape=[3, 3, 1, 1], initializer =tf.contrib.layers.xavier_initializer())
+beta_u0 = tf.Variable(tf.constant(0.0, shape=[1]),trainable=True)
 
-conv_u1_weights = tf.get_variable("u1", shape=[3, 3, LABEL_SIZE_C, 1], initializer =tf.contrib.layers.xavier_initializer())
+conv_u1_weights = tf.get_variable("u1", shape=[3, 3, 1, 1], initializer =tf.contrib.layers.xavier_initializer())
 beta_u1 = tf.Variable(tf.constant(0.0, shape=[1]),trainable=True)
+
+def Get(src):
+    return src
 
 def inference(inData, train,step):
     helper.isDrop = train
-    helper.keep_prop = 0.7
+    helper.keep_prop = 0.6
        
-    #in2 = helper.bilinear_resize(inData, step)    
-    in2 = helper.Gaussian_noise_Add(inData, 0.3, 0.5)
+    in2 = inData = helper.Gaussian_noise_Add(inData, 0.3, 0.6)
+    #if step%3==1: in2= tf.nn.avg_pool(inData,pool_stride2,strides=pool_stride2,padding='SAME')
+    #elif step%3==2:in2= tf.nn.avg_pool(inData,pool_stride3,strides=pool_stride3,padding='SAME')
     feature1 = pool = helper.conv2dBN_Relu(in2,conv_l0_weights,beta_l0,gamma_l0,train)
 
     #1/4
@@ -143,10 +147,9 @@ def inference(inData, train,step):
     input_shape = inData.get_shape().as_list()
     pool = helper.resize(pool,input_shape[1] ,input_shape[2])
 
-    #foreground = pool[:,:,:,1]
-    #foreground = tf.reshape(foreground,[-1,input_shape[1] ,input_shape[2],1])
-    unknown = helper.conv2dRelu(pool,conv_u0_weights,beta_u0)
+    foreground = pool[:,:,:,1]
+    foreground = tf.reshape(foreground,[-1,input_shape[1] ,input_shape[2],1])
+    unknown = helper.conv2dRelu(foreground,conv_u0_weights,beta_u0)
     unknown = helper.conv2d(unknown,conv_u1_weights,beta_u1)
-    
     unknown = tf.nn.sigmoid(unknown)
     return pool,unknown; 

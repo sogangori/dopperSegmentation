@@ -18,6 +18,7 @@ class DataReader():
     h = 256
     startY =20
     dstH = 128+32
+    ext = ".png"
             
     def __init__(self):
         print ("DataReader.py __init__") 
@@ -127,8 +128,6 @@ class DataReader():
     def SaveAsImage(self, src, filePath, count = 1):
         ext = ".png"        
         print ("SaveAsImage","count:", count, src.shape, filePath, ext)
-        
-        #src = numpy.abs(src)
         src = numpy.reshape(src, [count,-1,self.w])
         for i in range(0, count):
             
@@ -137,7 +136,7 @@ class DataReader():
             img.save( fileName )    
             
     def SaveAsImageByChannel(self, src, filePath, count = 1):
-        ext = "_tri.png"        
+        
         print ("SaveAsImageByChannel","count:", count, src.shape, filePath,ext   )
         
         for i in range(0, count):          
@@ -146,12 +145,19 @@ class DataReader():
                 
                 #img = toimage(inChannel/numpy.max(inChannel)*255)                                
                 img = toimage(inChannel*255)
-                fileName =filePath+ str(i)+"_"+ str(c)+ext 
+                fileName =filePath+ str(i)+"_"+ str(c)+"_tri"+self.ext  
                 img.save( fileName ) 
     
-    def SaveTensorImage(self, src, filePath):
-        ext = ".png"        
-        print ("SaveTensorImage",  src.shape, filePath,ext)
+    def SaveImage(self, src, filePath):                
+        print ("SaveTensorImage",  src.shape, filePath)
+          
+        for i in range(0, src.shape[0]):  
+            img = toimage( src[i,:])
+            fileName =filePath+"_t_"+ str(i)+self.ext 
+            img.save( fileName )
+             
+    def SaveImageNormalize(self, src, filePath):
+        print ("SaveTensorImage",  src.shape, filePath)
           
         for i in range(0, src.shape[0]):  
             data = src[i,:]
@@ -160,8 +166,9 @@ class DataReader():
             data_normal = data_2d/np.max(data_2d,0)
             data_normal_2d = np.reshape(data_2d, src_shape)
             img = toimage(data_normal_2d)
-            fileName =filePath+"_t_"+ str(i)+ext 
+            fileName =filePath+"_t_"+ str(i)+self.ext  
             img.save( fileName ) 
+                     
     def SNR(self, label, predict):
         print ('SNR min,max',numpy.min(label),numpy.max(label),'predict minMax Mean',numpy.min(predict), numpy.max(predict), numpy.mean(predict))
         noise = label - predict
