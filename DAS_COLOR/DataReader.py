@@ -8,15 +8,15 @@ from sklearn.preprocessing import StandardScaler
 class DataReader():
     
     folder ="C:/Users/pc/Documents/Visual Studio 2013/Projects/DopplerTrainPreProcess/IQApp_cuda/bin/x64/Debug/trainData"
-    pathTrain = folder +"/das/*.dat"
+    pathTrain = folder +"/das9/*.dat"
     #pathTrain = folder +"/das_threshold/*.dat"
     
     channel = 301
     inC = 300
     w = 256
     h = 256
-    startY =24
-    dstH = 128+16
+    startY =20
+    dstH = 128+32
             
     def __init__(self):
         print ("DataReader.py __init__") 
@@ -130,7 +130,7 @@ class DataReader():
             img.save( fileName )    
             
     def SaveAsImageByChannel(self, src, filePath, count = 1):
-        ext = ".png"        
+        ext = "_tri.png"        
         print ("SaveAsImageByChannel","count:", count, src.shape, filePath,ext   )
         
         for i in range(0, count):          
@@ -147,14 +147,14 @@ class DataReader():
         print ("SaveTensorImage",  src.shape, filePath,ext)
           
         for i in range(0, src.shape[0]):  
-            if i<1:        
-                for c in range(0, src.shape[3]):
-                    inChannel = numpy.abs(src[i,:,:,c])
-                    
-                    img = toimage(inChannel/numpy.max(inChannel)*255)                                
-                    #img = toimage(inChannel*255)
-                    fileName =filePath+"_"+ str(c)+ext 
-                    img.save( fileName ) 
+            data = src[i,:]
+            src_shape = data.shape
+            data_2d = np.reshape(data, (-1, data.shape[np.ndim(data)-1]) )            
+            data_normal = data_2d/np.max(data_2d,0)
+            data_normal_2d = np.reshape(data_2d, src_shape)
+            img = toimage(data_normal_2d)
+            fileName =filePath+"_t_"+ str(i)+ext 
+            img.save( fileName ) 
     def SNR(self, label, predict):
         print ('SNR min,max',numpy.min(label),numpy.max(label),'predict minMax Mean',numpy.min(predict), numpy.max(predict), numpy.mean(predict))
         noise = label - predict

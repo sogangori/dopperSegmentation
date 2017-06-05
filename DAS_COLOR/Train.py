@@ -11,7 +11,7 @@ from six.moves import xrange
 import tensorflow as tf
 from operator import or_
 from DataReader import DataReader
-import Model_bn_narrow as model 
+import Model_trimap as model 
 #http://angusg.com/writing/2016/12/28/optimizing-iou-semantic-segmentation.html
 folder = "./DAS_COLOR/weights/"
 hiddenImagePath = folder+"hidden/"
@@ -24,7 +24,7 @@ EVAL_FREQUENCY = 20
 AUGMENT = 2
 DATA_SIZE = 6
 BATCH_SIZE = np.int(DATA_SIZE)  
-NUM_EPOCHS = 2
+NUM_EPOCHS = 1
 isNewTrain = not True      
 
 def main(argv=None):        

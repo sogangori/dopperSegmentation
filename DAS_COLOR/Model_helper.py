@@ -93,3 +93,8 @@ def conv2dBN_Relu(src, weights, beta,gamma, isTrain):
     conv = tf.nn.conv2d(src_s,weights,strides=[1, 1, 1, 1],padding='SAME')
     bn = batchNormal(conv,beta,gamma)
     return tf.nn.relu(bn)
+
+def avg_pool_resize(src, step):
+    if step%3==1: src= tf.nn.avg_pool(src,pool_stride2,strides=pool_stride2,padding='SAME')
+    elif step%3==2:src= tf.nn.avg_pool(src,pool_stride3,strides=pool_stride3,padding='SAME')
+    return src
