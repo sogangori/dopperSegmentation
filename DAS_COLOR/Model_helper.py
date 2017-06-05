@@ -35,18 +35,18 @@ def conv2dReluStride2(src, weights, bias):
     return tf.nn.relu(conv) 
 
 def Gaussian_noise_layer(input_layer, std):
-    noise = tf.random_normal(shape = input_layer.get_shape(), mean = 0.0, stddev = std, dtype = tf.float32) 
+    noise = tf.random_normal(tf.shape(input_layer), mean = 0.0, stddev = std, dtype = tf.float32) 
     return input_layer + noise
 
 def Gaussian_noise_volumn_layer(input_layer, std):
-    count = input_layer.get_shape().as_list()[0]
-    channel = input_layer.get_shape().as_list()[3]
-    noise = tf.random_normal(shape = [count,1,1,channel], mean = 1.0, stddev = std, dtype = tf.float32) 
+    input_shape = tf.shape(input_layer)
+    shape = [input_shape[0],1,1,input_shape[3]]
+    noise = tf.random_normal(shape , mean = 1.0, stddev = std, dtype = tf.float32) 
     return input_layer * noise
 
 def Gaussian_noise_Add(input_layer, stdAlpha, stdBeta):
     src = Gaussian_noise_volumn_layer(input_layer,stdAlpha)
-    return Gaussian_noise_layer(input_layer,stdBeta)    
+    return Gaussian_noise_layer(src,stdBeta)   
 
 def upConv(src, weights, bias,up_shape):
     output = tf.nn.conv2d_transpose(src,weights,output_shape=up_shape, strides=[1, 2, 2, 1],padding='SAME')

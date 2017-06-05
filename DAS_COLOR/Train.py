@@ -11,7 +11,7 @@ from six.moves import xrange
 import tensorflow as tf
 from operator import or_
 from DataReader import DataReader
-import Model_wide as model 
+import Model_bn_narrow as model 
 #http://angusg.com/writing/2016/12/28/optimizing-iou-semantic-segmentation.html
 folder = "./DAS_COLOR/weights/"
 hiddenImagePath = folder+"hidden/"
@@ -21,26 +21,18 @@ inImagePath = folder+"in"
 
 DataReader = DataReader()
 EVAL_FREQUENCY = 20
-AUGMENT = 1
-DATA_SIZE = 12
-EVAL_BATCH_SIZE = DATA_SIZE*AUGMENT  
-BATCH_SIZE = np.int(DATA_SIZE)
-NUM_EPOCHS = 20
-test_ratio = 0.95
-isNewTrain = True      
+AUGMENT = 2
+DATA_SIZE = 6
+BATCH_SIZE = np.int(DATA_SIZE)  
+NUM_EPOCHS = 2
+isNewTrain = not True      
 
 def main(argv=None):        
 
-  train_data, train_labels = DataReader.GetDataAug(DATA_SIZE,AUGMENT);  
-    
-  print("train_data.shape", train_data.shape)
-  print("train_labels.shape", train_labels.shape)
-    
-  train_size = train_data.shape[0]          
-  test_offset = int(train_data.shape[3]* (1.0 - test_ratio))
-  test_count = train_data.shape[3] - test_offset
-  print ('test_offset',test_offset,'test_count',test_count)
+  #train_data, train_labels = DataReader.GetDataAug(DATA_SIZE,AUGMENT);  
   ensemble = model.ensemble  
+  train_data, train_labels,test_data,test_label = DataReader.GetDataTrainTest(DATA_SIZE,AUGMENT,ensemble);  
+  train_size = train_data.shape[0]           
   X = tf.placeholder(tf.float32, [None,train_data.shape[1],train_data.shape[2],ensemble])
   Y = tf.placeholder(tf.int32, [None,train_labels.shape[1],train_labels.shape[2]])
   IsTrain = tf.placeholder(tf.bool)
@@ -53,7 +45,7 @@ def main(argv=None):
   entropy = getLoss(prediction, Y)  
   loss = entropy + 1e-6 * regularizer()    
   batch = tf.Variable(0)
-  LearningRate = 0.001
+  LearningRate = 0.01
   DecayRate = 0.999
   
   learning_rate = tf.train.exponential_decay(
@@ -82,13 +74,13 @@ def main(argv=None):
     sess.run(tf.local_variables_initializer())  
     #summary_writer = tf.train.SummaryWriter(model.logName, sess.graph)
     #merged = tf.merge_all_summaries()
-
+    feed_dict_test = {X: test_data, Y: test_label, IsTrain :False,Step:0}
     for step in xrange(NUM_EPOCHS):
       model.step = step      
+      test_offset = train_data.shape[3] - ensemble  #288 - 12    
       for iter in range(0, test_offset):
-          
-          ensemble_start = iter % (test_offset-ensemble+1)  
-          batch_data = train_data[:,:,:,ensemble_start:ensemble_start + ensemble]          
+                    
+          batch_data = train_data[:,:,:,iter:iter + ensemble]          
           feed_dict = {X: batch_data, Y: train_labels, IsTrain:True,Step:step}      
           _, l,acc, iou,lr = sess.run([optimizer, entropy, accuracy,mean_iou, learning_rate], feed_dict)
           #summary_writer.add_summary(summary, step)
@@ -96,9 +88,8 @@ def main(argv=None):
             elapsed_time = time.time() - start_time
             start_time = time.time()
             now = strftime("%H:%M:%S", localtime())
-            takes = 1000 * elapsed_time / EVAL_FREQUENCY
-            batch_data = train_data[:,:,:,test_offset:test_offset+ensemble]
-            feed_dict_test = {X: batch_data, Y: train_labels, IsTrain :False,Step:0}
+            takes = 1000 * elapsed_time / EVAL_FREQUENCY            
+            
             iou_test = sess.run(mean_iou, feed_dict_test)
         
             print('%d/%d, %.0f ms, loss %.3f,IoU(%.3f,%.3f),lr %.4f, %s' % 
@@ -121,10 +112,9 @@ def main(argv=None):
     if sess.run(learning_rate)>0: 
         save_path = saver.save(sess, model.modelName)
         print ('save_path', save_path)      
-            
-    batch_data = train_data[:,:,:,test_offset:test_offset+ensemble]
-    predict = sess.run(prediction, feed_dict= {X: batch_data, Y: train_labels, IsTrain :False,Step:0})    
-    DataReader.SaveAsImage(predict[:,:,:,1], predictImagePath, EVAL_BATCH_SIZE)
+    
+    predict = sess.run(prediction, feed_dict= feed_dict_test)    
+    DataReader.SaveAsImage(predict[:,:,:,1], predictImagePath, predict.shape[0])
     
 
 def getIoU(a,b):
@@ -153,6 +143,7 @@ def getLoss(prediction,labels_node):
 def regularizer():
     regula=0
     for var in tf.trainable_variables(): 
+        
         regula +=  tf.nn.l2_loss(var)
     return regula
 

@@ -16,7 +16,7 @@ class DataReader():
     w = 256
     h = 256
     startY =24
-    dstH = 156
+    dstH = 128+16
             
     def __init__(self):
         print ("DataReader.py __init__") 
@@ -99,7 +99,24 @@ class DataReader():
     def GetDataAug(self, count, aug):        
         setIn, setOut = self.GetData(count)           
         return self.Augment(setIn,setOut, aug) 
-                  
+
+    def GetDataTrainTest(self, count, aug, ensemble):        
+        setIn, setOut = self.GetData(count)        
+        count = setIn.shape[3]
+        
+        count_train = count - ensemble
+        train0 = setIn[:,:,:,0:count_train]
+        train1 = setOut
+        test0 = setIn[:,:,:,count_train:]
+        test1 = setOut
+
+        train0,train1 = self.Augment(train0,train1, aug)
+        print ('train_in',train0.shape)
+        print ('train_out',train1.shape)
+        print ('test_in',test0.shape)
+        print ('test_out',test1.shape)        
+        return train0,train1,test0,test1
+                 
     def SaveAsImage(self, src, filePath, count = 1):
         ext = ".png"        
         print ("SaveAsImage","count:", count, src.shape, filePath, ext)
