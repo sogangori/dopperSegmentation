@@ -1,5 +1,6 @@
 ﻿import tensorflow as tf
 import time
+import numpy as np
 
 keep_prop = 1.0
 isDrop = False
@@ -97,4 +98,15 @@ def conv2dBN_Relu(src, weights, beta,gamma, isTrain):
 def avg_pool_resize(src, step):
     if step%3==1: src= tf.nn.avg_pool(src,pool_stride2,strides=pool_stride2,padding='SAME')
     elif step%3==2:src= tf.nn.avg_pool(src,pool_stride3,strides=pool_stride3,padding='SAME')
+    return src
+
+def bilinear_resize(src, step):
+    #input_shape = tf.shape(src)
+    input_shape = src.get_shape().as_list()
+    srcH = 128
+    srcW = 256
+    scale = step % 3 + 1
+    dstH = np.round(srcH/scale)
+    dstW = np.round(srcW/scale)
+    src= resize(src,dstH,dstW)
     return src

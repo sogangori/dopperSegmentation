@@ -9,6 +9,7 @@ class DataReader():
     
     folder ="C:/Users/pc/Documents/Visual Studio 2013/Projects/DopplerTrainPreProcess/IQApp_cuda/bin/x64/Debug/trainData"
     pathTrain = folder +"/das9/*.dat"
+    #pathTrain = folder +"/das/*.dat"
     #pathTrain = folder +"/das_threshold/*.dat"
     
     channel = 301
@@ -70,34 +71,40 @@ class DataReader():
 
     def Augment(self, src0, src1, aug):
         
-        count = src0.shape[0]
+        n = src0.shape[0]
         h = src0.shape[1]
         w = src0.shape[2]
         c = src0.shape[3]
-        setIn = numpy.zeros(shape=(count*aug,h,w,c), dtype=numpy.float32)
-        setOut = numpy.zeros(shape=(count*aug,h,w), dtype=numpy.float32) 
-        print ('count',count)
-        for n in range(0, count):            
-            print ('augment ',n,'/',count)
-            setIn[n,:] = setIn_one = src0[n,:]
-            setOut[n,:] = setOut_one = src1[n,:]                
+        setIn = numpy.zeros(shape=(n*aug,h,w,c), dtype=numpy.float32)
+        setOut = numpy.zeros(shape=(n*aug,h,w), dtype=numpy.float32) 
+        for i in range(0, n):            
+            print ('augment ',i,'/',n)
+            setIn[i,:] = setIn_one = src0[i,:]
+            setOut[i,:] = setOut_one = src1[i,:]                
             if aug > 1:
-                n1 = n+count
+                n1 = i+n
                 setIn[n1,:]= np.fliplr(setIn_one)
                 setOut[n1,:]= np.fliplr(setOut_one) 
             if aug > 2:
-                n2 = n+count*2
+                n2 = i+n*2
                 setIn[n2,:]= setIn_one[::-1]
                 setOut[n2,:]= setOut_one[::-1]
             if aug > 3:
-                n3 = n+count*3
-                setIn[n3,:]= np.flipud(setIn_one)
-                setOut[n3,:]= np.flipud(setOut_one) 
-        
+                n3 = i+n*3
+                setIn[n3,:]= np.flipud(setIn[n2,:])
+                setOut[n3,:]= np.flipud(setOut[n2,:])           
+            if aug > 4:
+                n4 = i+n*4
+                setIn[n4,:]= np.fliplr(setIn[n2,:])
+                setOut[n4,:]= np.fliplr(setOut[n2,:]) 
+            if aug > 5:
+                n5 = i+n*5
+                setIn[n5,:]= np.flipud(setIn_one)
+                setOut[n5,:]= np.flipud(setOut_one) 
         return [setIn, setOut]
 
-    def GetDataAug(self, count, aug):        
-        setIn, setOut = self.GetData(count)           
+    def GetDataAug(self, n, aug):        
+        setIn, setOut = self.GetData(n)           
         return self.Augment(setIn,setOut, aug) 
 
     def GetDataTrainTest(self, count, aug, ensemble):        
