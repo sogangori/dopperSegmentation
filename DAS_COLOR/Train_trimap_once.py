@@ -40,9 +40,11 @@ def main(argv=None):
   trimap = model.inference(X, IsTrain, Step)        
   argMax = tf.cast( tf.arg_max(trimap,3), tf.int32)  
   unknown = tf.cast( argMax > 1, tf.float32)
+  unknown_mean = tf.reduce_mean(unknown)
   mean_iou = getIoU(Y,argMax)
-  entropy = getLossTrimap(trimap, Y)  
-  loss = entropy + 1e-4 * tf.nn.l2_loss(unknown) + 1e-5 * regularizer()    
+  entropy,entropy2 = getLossMSE(trimap, Y)  
+  loss = entropy2 + unknown_mean + 1e-5 * regularizer()    
+  #loss = entropy2 + 1e-5 * regularizer()    
   batch = tf.Variable(0)
   LearningRate = 0.01
   DecayRate = 0.999
@@ -82,7 +84,7 @@ def main(argv=None):
       for iter in range((int)(test_offset/1)):
           batch_data = train_data[:,:,:,start_offsets[iter]:start_offsets[iter] + ensemble]          
           feed_dict = {X: batch_data, Y: train_labels, IsTrain:True,Step:step}      
-          _, l, iou,lr = sess.run([optimizer, entropy, mean_iou, learning_rate], feed_dict)
+          _,unknown_m, l,l2, iou,lr = sess.run([optimizer,unknown_mean, entropy,entropy2, mean_iou, learning_rate], feed_dict)
           #summary_writer.add_summary(summary, step)
           if iter % EVAL_FREQUENCY == 0:
             elapsed_time = time.time() - start_time
@@ -92,8 +94,8 @@ def main(argv=None):
             
             iou_test = sess.run(mean_iou, feed_dict_test)
         
-            print('%d/%d, %.0f ms, loss %.3f,IoU(%.3f,%.3f),lr %.4f, %s' % 
-                  (step, iter,takes,l,iou,iou_test, lr*100,now))   
+            print('%d/%d, %.0f ms, un:%.3f, loss %.3f,%f,IoU(%.3f,%.3f),lr %.4f, %s' % 
+                  (step, iter,takes,unknown_m,l,l2,iou,iou_test, lr*100,now))   
             # Add histograms for trainable variables.
             #for var in tf.trainable_variables(): tf.histogram_summary(var.op.name, var)
     
@@ -113,8 +115,8 @@ def main(argv=None):
         save_path = saver.save(sess, model.modelName)
         print ('save_path', save_path)      
     
-    trimap_mask = sess.run(trimap, feed_dict= feed_dict_test)    
-    DataReader.SaveAsImage(trimap_mask[:,:,:,2], predictImagePath, trimap_mask.shape[0])    
+    trimap_mask,unknown_mask = sess.run([trimap,unknown], feed_dict= feed_dict_test)    
+    DataReader.SaveAsImage(unknown_mask, predictImagePath, trimap_mask.shape[0])    
     print ('trimap_mask',trimap_mask.shape)
     DataReader.SaveImage(trimap_mask,predictImagePath)
     
@@ -129,36 +131,40 @@ def getIoU(label,predict):
     iou = tf.reduce_sum(inter)/tf.reduce_sum(union)
     return tf.cast(iou,tf.float32)
 
-def getLoss(prediction,labels_node):    
-    prediction =  tf.reshape(prediction, [-1, model.LABEL_SIZE_C])
-    shape = labels_node.get_shape().as_list()
-    label_reshape = tf.reshape(labels_node, [-1])
-    print ('prediction',prediction)
-    print ('labels_node',labels_node)
-    print ('labels_node_reshape',label_reshape)
-    #A common use case is to have logits of shape [batch_size, num_classes] 
-    #and labels of shape [batch_size]. But higher dimensions are supported.
-    entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits = prediction, labels = label_reshape)   
-    return  tf.reduce_mean(entropy)    
-
-def getLossTrimap(trimap, labels_node):
-    argMax = tf.cast( tf.arg_max(trimap,3), tf.int32)
-    unknown = tf.cast( argMax > 1, tf.float32)
-    trimap_serial =  tf.reshape(trimap, [-1, 3])
-    shape = labels_node.get_shape().as_list()
-    label_reshape = tf.reshape(labels_node, [-1])
+def getLossTrimap(trimap, labels_node):    
+    trimap_shape = tf.shape(trimap)
+    unknown = tf.cast( tf.arg_max(trimap,3) < 2, tf.int32)    
     unknown_reshape = tf.reshape(unknown, [-1])
-    print ('labels_node',labels_node)
-    print ('labels_node_reshape',label_reshape)
-    
+    unknown_reshape_flt32 = tf.cast(unknown_reshape,tf.float32)
+    trimap_serial =  tf.reshape(trimap, [-1, 3])
+    trimap_serial = tf.nn.softmax(trimap_serial)
+    label_reshape = tf.reshape(labels_node, [-1])    
+    label_reshape = tf.multiply(label_reshape, unknown_reshape)
+    label_reshape = tf.cast(label_reshape,tf.int32)
+    hot = tf.cast( tf.one_hot(unknown_reshape,3),tf.float32)
+    trimap_serial2 = tf.multiply(trimap_serial, hot)
     entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits = trimap_serial, labels = label_reshape)    
-    entropy = tf.multiply(entropy,1-unknown_reshape)
-    return  tf.reduce_mean(entropy)   
+    entropy2 = tf.nn.sparse_softmax_cross_entropy_with_logits(logits = trimap_serial2, labels = label_reshape)    
+    print('trimap',trimap)
+    print('entropy', entropy)
+    print('unknown_reshape', unknown_reshape)
+    return  tf.reduce_mean(entropy),tf.reduce_mean(entropy2)      
+
+def getLossMSE(trimap, labels_node):    
+    label = tf.one_hot(labels_node,3)
+    predict = trimap
+    error = tf.square(label-predict)
+    known = tf.cast( tf.arg_max(trimap,3) < 2, tf.float32)            
+    known = tf.multiply(known, 1-tf.nn.softmax(trimap)[:,:,:,2])
+    shape = tf.shape(known)
+    known_re = tf.reshape(known, [-1,shape[1],shape[2],1])    
+    known_2d = tf.concat([known_re,known_re,tf.zeros_like(known_re)],3)
+    error_bimap = tf.multiply( error,known_2d)
+    return tf.reduce_mean(error),tf.reduce_mean(error_bimap)
 
 def regularizer():
     regula=0
-    for var in tf.trainable_variables(): 
-        
+    for var in tf.trainable_variables():         
         regula +=  tf.nn.l2_loss(var)
     return regula
 
