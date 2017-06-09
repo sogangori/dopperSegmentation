@@ -11,8 +11,8 @@ from six.moves import xrange
 import tensorflow as tf
 from operator import or_
 from DataReader import DataReader
-import Model_bn_narrow_x as model 
-#http://angusg.com/writing/2016/12/28/optimizing-iou-semantic-segmentation.html
+import Model_bn_narrow as model 
+
 hiddenImagePath = "./Color/weights/hidden/"
 predictImagePath = "./Color/weights/predict"
 outImagePath = "./Color/weights/out"
@@ -22,11 +22,11 @@ DataReader = DataReader()
 EVAL_BATCH_SIZE = 10
 EVAL_FREQUENCY = 5
 AUGMENT = 2
-DATA_SIZE = 200#360+131+130 #max 360 + 131 + 130 = 621
-BATCH_SIZE = np.int(DATA_SIZE/2)  # * AUGMENT
-NUM_EPOCHS = 10
+DATA_SIZE = 20#360+131+130 #max 360 + 131 + 130 = 621
+BATCH_SIZE = np.int(DATA_SIZE / 2)  # * AUGMENT
+NUM_EPOCHS = 20
 isNewTrain = not True                 
-#82 43%, bn: 83 39
+
 def main(argv=None):        
   train_data, train_labels,train_help = DataReader.GetDataAug(DATA_SIZE, AUGMENT, isTrain =  True);  
   test_data, test_labels,test_help = DataReader.GetDataAug(EVAL_BATCH_SIZE,1, isTrain =  False);  
@@ -35,21 +35,31 @@ def main(argv=None):
   print("train_labels.shape", train_labels.shape)
   print("test_data.shape", test_data.shape)
   
-  train_size = train_data.shape[0]          
-  X = tf.placeholder(tf.float32, [None,train_data.shape[1],train_data.shape[2],train_data.shape[3]])
-  Y = tf.placeholder(tf.int32, [None,train_labels.shape[1],train_labels.shape[2]])
-  IsTrain = tf.placeholder(tf.bool)
-  Step = tf.placeholder(tf.int32)
+  train_size = train_data.shape[0]        
+  batch_train_in_shape  = [BATCH_SIZE,train_data.shape[1],train_data.shape[2],train_data.shape[3]]
+  batch_train_out_shape = [BATCH_SIZE,train_labels.shape[1],train_labels.shape[2]]
   
-  prediction, feature_map = model.inference(X, IsTrain, Step)    
-  argMax = tf.cast( tf.arg_max(prediction,3), tf.int32)
-  accuracy = tf.contrib.metrics.accuracy(argMax,Y)     
-  mean_iou = getIoU(Y,argMax)
-  entropy = getLoss(prediction, Y)
-  loss_iou = 1 - mean_iou   
-  loss = entropy + 1e-5 * regularizer()    
+  phase_train = tf.placeholder(tf.bool, name='phase_train')
+  train_data_node = tf.placeholder(tf.float32, shape=batch_train_in_shape)
+  train_labels_node = tf.placeholder(tf.int32, shape=batch_train_out_shape)
+  test_data_node = tf.placeholder(tf.float32, shape=test_data.shape)
+  test_labels_node = tf.placeholder(tf.int32, shape=test_labels.shape)
+    
+  train_prediction, train_feature_map = model.inference(train_data_node, phase_train)  
+  test_prediction, test_feature_map = model.inference(test_data, phase_train)  
+  entropy = getLoss(train_prediction, train_labels_node)
+  loss = entropy + 1e-6 * regullarizer()  
+  
+  argMax = tf.cast( tf.arg_max(train_prediction,3), tf.int32)
+  accuracy = tf.contrib.metrics.accuracy(argMax,train_labels_node)    
+  
+  test_argMax = tf.cast( tf.arg_max(test_prediction,3), tf.int32)  
+  test_accuracy = tf.contrib.metrics.accuracy(test_argMax,test_labels_node)    
+  
+  #tf.scalar_summary("loss", loss)
+
   batch = tf.Variable(0)
-  LearningRate = 0.01
+  LearningRate = 0.003
   DecayRate = 0.999
   
   learning_rate = tf.train.exponential_decay(
@@ -60,7 +70,7 @@ def main(argv=None):
       staircase=True)
   
   # Use simple momentum for the optimization.
-  optimizer = tf.train.AdamOptimizer(learning_rate).minimize(loss, global_step=batch)
+  optimizer = tf.train.AdamOptimizer(learning_rate, 0.5).minimize(loss, global_step=batch)
  
   def eval_in_batches(data, sess):
     """Get all predictions for a dataset by running it in small batches."""
@@ -93,10 +103,10 @@ def main(argv=None):
     else :        
         saver.restore(sess, model.modelName)
         print("Model restored")
-    sess.run(tf.local_variables_initializer())  
+        
     #summary_writer = tf.train.SummaryWriter(model.logName, sess.graph)
     #merged = tf.merge_all_summaries()
-
+    
     for step in xrange(int(NUM_EPOCHS * train_size) // BATCH_SIZE):
       # Compute the offset of the current minibatch in the data.
       # Note that we could use better randomization across epochs.
@@ -106,22 +116,23 @@ def main(argv=None):
     
       # This dictionary maps the batch data (as a np array) to the
       # node in the graph it should be fed to.
-      model.step = step
-      feed_dict = {X: train_data[offset:(offset + BATCH_SIZE)],
-                   Y: train_labels[offset:(offset + BATCH_SIZE)],
-                   IsTrain:True,Step:step}      
-      _, l,l2,acc, iou,lr = sess.run([optimizer, entropy,loss_iou, accuracy,mean_iou, learning_rate], feed_dict)
+      feed_dict = {train_data_node: train_data[offset:(offset + BATCH_SIZE)], 
+                   train_labels_node: train_labels[offset:(offset + BATCH_SIZE)],
+                   phase_train:True }
+      # Run the graph and fetch some of the nodes.
+      _, l,acc, lr, predictions = sess.run(
+          [optimizer, entropy, accuracy, learning_rate, train_prediction], feed_dict=feed_dict)
       #summary_writer.add_summary(summary, step)
       if step % EVAL_FREQUENCY == 0:
         elapsed_time = time.time() - start_time
         start_time = time.time()
         now = strftime("%H:%M:%S", localtime())
         takes = 1000 * elapsed_time / EVAL_FREQUENCY
-        feed_dict_test = {X: test_data, Y: test_labels,IsTrain:False,Step:0}
-        iou_test = sess.run(mean_iou, feed_dict_test)
-        
-        print('%d/%.1f, %.0f ms, loss(%.3f,%.3f),IoU(%g,%.3f),lr %.4f, %s' % 
-              (step, float(step) * BATCH_SIZE / train_size,takes,l,l2,iou,iou_test, lr*100,now))   
+        feed_dict_test = {test_data_node: test_data, test_labels_node: test_labels, phase_train:False}
+        test_acc = sess.run(test_accuracy, feed_dict=feed_dict_test)
+        print('%d/%.1f, %.0f ms, loss %f, acc %.2f, %.2f, lr %.4f, %s' % 
+              (step, float(step) * BATCH_SIZE / train_size,takes,l,acc*100, test_acc*100,lr*100,now))        
+                 
         # Add histograms for trainable variables.
         #for var in tf.trainable_variables(): tf.histogram_summary(var.op.name, var)
     
@@ -129,7 +140,10 @@ def main(argv=None):
         if lr==0 or l>20: 
             print ('lr l has problem  ',lr) 
             return
-        
+        if (not isNewTrain) and l>0.5:
+            print ('lr l has problem 2 ',lr) 
+            return
+
         this_sec = time.time()
         if this_sec - start_sec > 60 * 20 :
             start_sec = this_sec
@@ -140,21 +154,18 @@ def main(argv=None):
     if lr>0: 
         save_path = saver.save(sess, model.modelName)
         print ('save_path', save_path)      
-            
-    predict,feature_map_,test_acc = sess.run([prediction, feature_map,accuracy], feed_dict=feed_dict_test)
-    print('accuracy train:%.2f, test:%.2f' % (iou, iou_test))                    
-    DataReader.SaveAsImage(predict[:,:,:,1], predictImagePath, EVAL_BATCH_SIZE, maxCount = 10)
-    #DataReader.SaveFeatureMap(feature_map, "./Color/weights/featureMap/fm", EVAL_BATCH_SIZE, maxCount = 1)
 
-def getIoU(a,b):
-    a = tf.round(a)    
-    b = tf.round(b)
-    trn_labels=tf.reshape(a, [-1])
-    logits=tf.reshape(b, [-1])
-    inter=tf.reduce_sum(tf.multiply(logits,trn_labels))
-    union=tf.reduce_sum(tf.subtract(tf.add(logits,trn_labels),tf.multiply(logits,trn_labels)))
-    iou = inter/union
-    return tf.cast(iou,tf.float32)
+    feed_dict_test = {test_data_node: test_data, test_labels_node: test_labels, phase_train:False}            
+    predict_test,test_feature_maptest_acc ,test_acc = sess.run([test_prediction, test_feature_map,test_accuracy], feed_dict=feed_dict_test)
+    
+    print('accuracy train:%.2f, test:%.2f' % (acc, test_acc))            
+    pred = np.array(np.argmin(predict_test,3), int)
+    print('pred ' , pred .shape)    
+    predict_test = np.array(predict_test)
+    print('predict_test' , predict_test.shape)         
+    DataReader.SaveAsImage(predict_test[:,:,:,1], predictImagePath, EVAL_BATCH_SIZE, maxCount = 10)
+    #DataReader.SaveFeatureMap(test_feature_map, "./Color/weights/featureMap/fm", EVAL_BATCH_SIZE, maxCount = 1)
+
 
 def getLoss(prediction,labels_node):    
     prediction =  tf.reshape(prediction, [-1, model.LABEL_SIZE_C])
@@ -169,7 +180,7 @@ def getLoss(prediction,labels_node):
     #labelResionError = (entropy * tf.cast(label_reshape,tf.float32)) * 0.2
     return  tf.reduce_mean(entropy)    
 
-def regularizer():
+def regullarizer():
     regula=0
     for var in tf.trainable_variables(): 
         regula +=  tf.nn.l2_loss(var)

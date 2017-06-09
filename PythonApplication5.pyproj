@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>da2160d5-1e77-4900-b28b-0619bee67a80</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Color\Train.py</StartupFile>
+    <StartupFile>DAS_Unknown\Train_trimap.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -23,14 +23,15 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Color\DataReader.py" />
+    <Compile Include="Color\Model_bn_IoU_narrow.py" />
+    <Compile Include="Color\Model_bn_narrow_x.py" />
     <Compile Include="Color\Model_concat.py" />
-    <Compile Include="Color\Model_helper.py">
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="Color\Model_helper.py" />
     <Compile Include="Color\Model_2loss.py" />
     <Compile Include="Color\Model_aug.py" />
     <Compile Include="Color\Model_frru.py" />
     <Compile Include="Color\Model_morp.py" />
+    <Compile Include="Color\Model_bn_narrow.py" />
     <Compile Include="Color\Model_thick.py" />
     <Compile Include="Color\Model_RoI_share.py" />
     <Compile Include="Color\Model_RoI.py" />
@@ -50,29 +51,65 @@
     </Compile>
     <Compile Include="Color\TestDataReader.py" />
     <Compile Include="Color\Test.py" />
+    <Compile Include="Color\Train_trimap.py" />
+    <Compile Include="Color\Train_IoU.py" />
+    <Compile Include="Color\TrainBool.py" />
     <Compile Include="Color\Train_RoI.py" />
     <Compile Include="Color\Train_with_helper.py" />
     <Compile Include="Color\Train_2loss.py" />
     <Compile Include="Color\Train.py" />
     <Compile Include="Color\Model_narrow.py" />
-    <Compile Include="DAS\DataReader.py">
+    <Compile Include="DAS_COLOR\DataReader.py" />
+    <Compile Include="DAS_COLOR\Model_trimap_2x.py" />
+    <Compile Include="DAS_COLOR\Model_trimap_once.py" />
+    <Compile Include="DAS_COLOR\Model_trimap.py" />
+    <Compile Include="DAS_COLOR\Model_ensemble.py" />
+    <Compile Include="DAS_COLOR\Model_bn_narrow.py" />
+    <Compile Include="DAS_COLOR\Model_helper.py" />
+    <Compile Include="DAS_COLOR\Model_enc.py" />
+    <Compile Include="DAS_COLOR\Model_wide.py" />
+    <Compile Include="DAS_COLOR\Model_recur.py" />
+    <Compile Include="DAS_COLOR\Model_narrow.py" />
+    <Compile Include="DAS_COLOR\TestTrainData.py" />
+    <Compile Include="DAS_COLOR\TestDataReader.py" />
+    <Compile Include="DAS_COLOR\test\ensemble_divide.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="DAS\TestDataReader.py">
+    <Compile Include="DAS_COLOR\test\reverse_array.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="DAS\Train2.py" />
-    <Compile Include="DAS\Train.py">
+    <Compile Include="DAS_COLOR\test\tf_array_cut.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="DAS\TrainConcat5FromHalf.py">
+    <Compile Include="DAS_COLOR\Train_trimap.py" />
+    <Compile Include="DAS_COLOR\Train_recur.py" />
+    <Compile Include="DAS_COLOR\Train.py" />
+    <Compile Include="DAS_Unknown\DataReader.py" />
+    <Compile Include="DAS_Unknown\Model_helper.py" />
+    <Compile Include="DAS_Unknown\Model_bimap.py" />
+    <Compile Include="DAS_Unknown\Model_trimap_2x.py" />
+    <Compile Include="DAS_Unknown\TestDataReader.py" />
+    <Compile Include="DAS_Unknown\Test_trimap.py" />
+    <Compile Include="DAS_Unknown\Train_bimap.py" />
+    <Compile Include="DAS_Unknown\Train_trimap.py" />
+    <Compile Include="RF\DataReader.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="DAS\Train2loss.py" />
-    <Compile Include="DAS\TrainRes.py">
+    <Compile Include="RF\TestDataReader.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="DAS\TrainSkip3.py">
+    <Compile Include="RF\Train2.py" />
+    <Compile Include="RF\Train.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="RF\TrainConcat5FromHalf.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="RF\Train2loss.py" />
+    <Compile Include="RF\TrainRes.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="RF\TrainSkip3.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ROI\LinearRegressionTest2Vector.py" />
@@ -89,6 +126,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tutorial\f1Score.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tutorial\GetMaxVaelu.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tutorial\homeWork2.py">
@@ -110,9 +150,14 @@
     <Compile Include="Tutorial\Normalize.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Tutorial\NormalizeStd.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Tutorial\pooling_max_index.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Tutorial\Precision4dTs.py" />
+    <Compile Include="Tutorial\Precision4d.py" />
     <Compile Include="Tutorial\Precision.py">
       <SubType>Code</SubType>
     </Compile>
@@ -132,25 +177,46 @@
     <Compile Include="Tutorial\TestList.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Tutorial\trimap_error.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Tutorial\vector_mul.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tutorial\word2vec_basic.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="unsupervised\DataReader.py" />
+    <Compile Include="unsupervised\Model_autoEncoder_thick.py" />
+    <Compile Include="unsupervised\Model_helper.py" />
+    <Compile Include="unsupervised\Model_autoEncoder.py" />
+    <Compile Include="unsupervised\Model_narrow.py" />
+    <Compile Include="unsupervised\Train_un.py" />
+    <Compile Include="unsupervised\Train_with_helper.py" />
+    <Compile Include="unsupervised\TestDataReader.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Color\weights\" />
     <Folder Include="Color\weights\featureMap\" />
-    <Folder Include="DAS\" />
-    <Folder Include="DAS\weights\" />
+    <Folder Include="DAS_COLOR\test\" />
+    <Folder Include="DAS_COLOR\weights\" />
+    <Folder Include="DAS_Unknown\" />
+    <Folder Include="DAS_Unknown\weights\" />
+    <Folder Include="RF\" />
+    <Folder Include="RF\weights\" />
     <Folder Include="Color\" />
+    <Folder Include="DAS_COLOR\" />
+    <Folder Include="unsupervised\" />
     <Folder Include="ROI\" />
     <Folder Include="Trimap\" />
     <Folder Include="Score\" />
     <Folder Include="Tutorial\" />
+    <Folder Include="unsupervised\weights\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Color\Model_helper2.py">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="Score\Score.txt" />
   </ItemGroup>
   <PropertyGroup>

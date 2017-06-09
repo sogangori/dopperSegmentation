@@ -10,20 +10,16 @@ import numpy
 from six.moves import urllib
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
-import Model_helper2 as helper
+import Model_helper as helper
 
-modelName = "./Color/weights/narrow_helper.pd"#narrow_
+modelName = "./DAS_COLOR/weights/recur.pd"
 LABEL_SIZE_C = 2
-NUM_CHANNELS_In= 3
+ensemble= 6
+depth0 = ensemble
 pool_stride2 =[1, 2, 2, 1]
 pool_stride3 =[1, 3, 3, 1]
-depth0 = 3
 
-#depth 1 : 86%, 82% loss 0.15x shape bad
-#depth 2, Aug x2 : 85%, 82% loss 0.114x shape good
-#depth 2, Aug x3~x4 : 83%, 80% loss 0.041x 
-
-conv_l0_weights  = tf.get_variable("w1", shape=[3, 3, NUM_CHANNELS_In, depth0], initializer =tf.contrib.layers.xavier_initializer())
+conv_l0_weights  = tf.get_variable("w1", shape=[3, 3, ensemble+1, depth0], initializer =tf.contrib.layers.xavier_initializer())
 conv_l0_biases = tf.Variable(tf.zeros([depth0]))
 
 conv_m0_weights = tf.get_variable("m0", shape=[3, 3, depth0, depth0], initializer =tf.contrib.layers.xavier_initializer())
@@ -65,20 +61,15 @@ conv_l2_biases = tf.Variable(tf.zeros([depth0]))
 conv_l3_weights = tf.get_variable("l3", shape=[3, 3, depth0, LABEL_SIZE_C], initializer =tf.contrib.layers.xavier_initializer())
 conv_l3_biases = tf.Variable(tf.zeros([LABEL_SIZE_C]))
 
-step=0
-
-def inference(inData, train,step):
+def inference(inData, train, step, mask):
     helper.isDrop = train
     helper.keep_prop = 0.6
-    
-    src = tf.nn.avg_pool(inData,pool_stride2,strides=pool_stride2,padding='SAME')
-    #if step%3==1:  in2= tf.nn.avg_pool(inData,pool_stride2,strides=pool_stride2,padding='SAME')
-    #elif step%3==2:in2= tf.nn.avg_pool(inData,pool_stride3,strides=pool_stride3,padding='SAME')
-    featureMap = []
+    inData = tf.concat([inData, mask],3)
+    in2  = inData
     #if train: inData = helper.Gaussian_noise_layer(inData, 0.1)
     
     #1/2    
-    feature1 = pool = helper.conv2dRelu(src,conv_l0_weights,conv_l0_biases)
+    feature1 = pool = helper.conv2dRelu(in2,conv_l0_weights,conv_l0_biases)
 
     #1/4
     pool = tf.nn.max_pool(pool,pool_stride2,strides=pool_stride2,padding='SAME')    
@@ -101,44 +92,36 @@ def inference(inData, train,step):
     pool = tf.nn.max_pool(pool,pool_stride2,strides=pool_stride2,padding='SAME')    
     pool = helper.conv2d(pool,conv_xx0_weights,conv_xx0_biases)   
         
-    featureMap.append(inData)   
-    featureMap.append(feature1)
-    featureMap.append(feature2)
-    featureMap.append(feature3)
-    featureMap.append(feature4)
-    featureMap.append(feature5)
-    featureMap.append(feature6)
-    featureMap.append(pool)
-
+    
     up_shape = feature6.get_shape().as_list()
     pool = helper.resize(pool, up_shape[1],up_shape[2])    
     pool = tf.nn.relu(tf.add(feature6, pool))
     pool = helper.conv2d(pool,conv_x2_weights,conv_x2_biases)   
-    featureMap.append(pool)
+    
 
     up_shape = feature5.get_shape().as_list()
     pool = helper.resize(pool, up_shape[1],up_shape[2])    
     pool = tf.nn.relu(tf.add(feature5, pool)) 
     pool = helper.conv2d(pool,conv_p2_weights,conv_p2_biases)   
-    featureMap.append(pool)
+    
 
     up_shape = feature4.get_shape().as_list()
     pool = helper.resize(pool, up_shape[1],up_shape[2])    
     pool = tf.nn.relu(tf.add(feature4, pool)) 
     pool = helper.conv2d(pool,conv_t2_weights,conv_t2_biases)   
-    featureMap.append(pool)
+    
 
     up_shape = feature3.get_shape().as_list()
     pool = helper.resize(pool, up_shape[1],up_shape[2])    
     pool = tf.nn.relu(tf.add(feature3, pool)) 
     pool = helper.conv2d(pool,conv_s2_weights,conv_s2_biases)   
-    featureMap.append(pool)
+    
 
     up_shape = feature2.get_shape().as_list()
     pool = helper.resize(pool, up_shape[1],up_shape[2])    
     pool = tf.nn.relu(tf.add(feature2, pool)) 
     pool = helper.conv2d(pool,conv_m2_weights,conv_m2_biases)   
-    featureMap.append(pool)
+    
         
     up_shape = feature1.get_shape().as_list()
     pool = helper.resize(pool, up_shape[1],up_shape[2])    
@@ -148,5 +131,5 @@ def inference(inData, train,step):
   
     input_shape = inData.get_shape().as_list()
     pool = helper.resize(pool,input_shape[1] ,input_shape[2])
-
+   
     return pool; 

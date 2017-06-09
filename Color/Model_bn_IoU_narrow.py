@@ -1,7 +1,7 @@
 ﻿from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
+#http://davidstutz.de/batch-normalization-in-tensorflow/
 import gzip
 import os
 import sys
@@ -10,13 +10,12 @@ import numpy
 from six.moves import urllib
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
-import Model_helper2 as helper
+import Model_helper as helper
 
-modelName = "./Color/weights/narrow_helper.pd"#narrow_
+modelName = "./Color/weights/bn_iou_narrow.pd"
 LABEL_SIZE_C = 2
 NUM_CHANNELS_In= 3
 pool_stride2 =[1, 2, 2, 1]
-pool_stride3 =[1, 3, 3, 1]
 depth0 = 3
 
 #depth 1 : 86%, 82% loss 0.15x shape bad
@@ -62,31 +61,39 @@ conv_m2_biases = tf.Variable(tf.zeros([depth0]))
 conv_l2_weights = tf.get_variable("l2", shape=[3, 3, depth0, depth0], initializer =tf.contrib.layers.xavier_initializer())
 conv_l2_biases = tf.Variable(tf.zeros([depth0]))
 
-conv_l3_weights = tf.get_variable("l3", shape=[3, 3, depth0, LABEL_SIZE_C], initializer =tf.contrib.layers.xavier_initializer())
-conv_l3_biases = tf.Variable(tf.zeros([LABEL_SIZE_C]))
+conv_l3_weights = tf.get_variable("l3", shape=[3, 3, depth0, 1], initializer =tf.contrib.layers.xavier_initializer())
+conv_l3_biases = tf.Variable(tf.zeros([1]))
 
-step=0
+beta = tf.Variable(tf.constant(0.0, shape=[depth0]),name='beta', trainable=True)
+gamma = tf.Variable(tf.constant(1.0, shape=[depth0]),name='gamma', trainable=True)
 
-def inference(inData, train,step):
-    helper.isDrop = train
+beta1 = tf.Variable(tf.constant(0.0, shape=[depth0]),name='beta1', trainable=True)
+gamma1 = tf.Variable(tf.constant(1.0, shape=[depth0]),name='gamma1', trainable=True)
+
+beta2 = tf.Variable(tf.constant(0.0, shape=[depth0]),name='beta2', trainable=True)
+gamma2 = tf.Variable(tf.constant(1.0, shape=[depth0]),name='gamma2', trainable=True)
+
+beta3 = tf.Variable(tf.constant(0.0, shape=[depth0]),name='beta3', trainable=True)
+gamma3 = tf.Variable(tf.constant(1.0, shape=[depth0]),name='gamma3', trainable=True) 
+
+step = 0
+def inference(inData, train = False):
+    helper.isDrop = False
     helper.keep_prop = 0.6
     
-    src = tf.nn.avg_pool(inData,pool_stride2,strides=pool_stride2,padding='SAME')
-    #if step%3==1:  in2= tf.nn.avg_pool(inData,pool_stride2,strides=pool_stride2,padding='SAME')
-    #elif step%3==2:in2= tf.nn.avg_pool(inData,pool_stride3,strides=pool_stride3,padding='SAME')
     featureMap = []
-    #if train: inData = helper.Gaussian_noise_layer(inData, 0.1)
-    
-    #1/2    
-    feature1 = pool = helper.conv2dRelu(src,conv_l0_weights,conv_l0_biases)
+    in2 = inData = tf.multiply(inData ,1.0)
+    if step%3==1:  in2= tf.nn.avg_pool(inData,pool_stride2,strides=pool_stride2,padding='SAME')
+    #elif step%3==2:in2= tf.nn.avg_pool(inData,pool_stride3,strides=pool_stride3,padding='SAME')
+    feature1 = pool = helper.conv2dBN(in2,conv_l0_weights,beta,gamma,train)
 
     #1/4
     pool = tf.nn.max_pool(pool,pool_stride2,strides=pool_stride2,padding='SAME')    
-    feature2 = pool = helper.conv2dRelu(pool,conv_m0_weights,conv_m0_biases)   
+    feature2 = pool = helper.conv2dBN(pool,conv_m0_weights,beta1,gamma1, train)   
 
     #1/8
     pool = tf.nn.max_pool(pool,pool_stride2,strides=pool_stride2,padding='SAME')    
-    feature3 = pool = helper.conv2dRelu(pool,conv_s0_weights,conv_s0_biases)   
+    feature3 = pool = helper.conv2dBN(pool,conv_s0_weights,beta2,gamma2, train)   
 
     #1/16
     pool = tf.nn.max_pool(pool,pool_stride2,strides=pool_stride2,padding='SAME')    
@@ -131,22 +138,12 @@ def inference(inData, train,step):
     up_shape = feature3.get_shape().as_list()
     pool = helper.resize(pool, up_shape[1],up_shape[2])    
     pool = tf.nn.relu(tf.add(feature3, pool)) 
-    pool = helper.conv2d(pool,conv_s2_weights,conv_s2_biases)   
-    featureMap.append(pool)
-
-    up_shape = feature2.get_shape().as_list()
-    pool = helper.resize(pool, up_shape[1],up_shape[2])    
-    pool = tf.nn.relu(tf.add(feature2, pool)) 
-    pool = helper.conv2d(pool,conv_m2_weights,conv_m2_biases)   
-    featureMap.append(pool)
-        
-    up_shape = feature1.get_shape().as_list()
-    pool = helper.resize(pool, up_shape[1],up_shape[2])    
-    pool = tf.nn.relu(tf.add(feature1, pool)) 
+    pool = helper.conv2dBN(pool,conv_m2_weights,beta3,gamma3, train)
     pool = helper.conv2dRelu(pool,conv_l2_weights,conv_l2_biases)     
-    pool = helper.conv2dRelu(pool,conv_l3_weights,conv_l3_biases)
+    pool = helper.conv2d(pool,conv_l3_weights,conv_l3_biases)
+    pool = tf.nn.sigmoid(pool)
   
     input_shape = inData.get_shape().as_list()
     pool = helper.resize(pool,input_shape[1] ,input_shape[2])
-
-    return pool; 
+  
+    return pool,featureMap; 

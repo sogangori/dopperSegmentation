@@ -12,10 +12,11 @@ import tensorflow as tf
 from operator import or_
 from DataReader import DataReader
 import Model_trimap_2x as model 
-#http://angusg.com/writing/2016/12/28/optimizing-iou-semantic-segmentation.html
-folder = "./DAS_COLOR/weights/"
+
+folder = "./DAS_Unknown/weights/"
 hiddenImagePath = folder+"hidden/"
-predictImagePath = folder+"predict"
+ImagePath1 = folder+"trimap"
+ImagePath2 = folder+"unknown"
 outImagePath = folder+"out"
 inImagePath = folder+"in"
 
@@ -26,34 +27,6 @@ DATA_SIZE = 12
 BATCH_SIZE = np.int(DATA_SIZE)  
 NUM_EPOCHS = 1
 isNewTrain = not True      
-
-def getLossMSE(trimap, labels_node):    
-    label = tf.one_hot(labels_node,3)
-    predict = trimap
-    error = tf.square(label-predict)
-    known = tf.cast( tf.arg_max(trimap,3) < 2, tf.float32)
-    # = 1+tf.nn.softmax(trimap)[:,:,:,2]
-    #known = tf.multiply(known,error_w)
-    shape = tf.shape(known)
-    known_re = tf.reshape(known, [-1,shape[1],shape[2],1])    
-    known_prob = tf.reshape(1-tf.nn.softmax(trimap)[:,:,:,2],[-1,shape[1],shape[2],1])     
-    #known_2d = tf.concat([known_re,known_re,tf.zeros_like(known_re)],3)
-    known_2d = tf.concat([known_re,known_re,known_prob],3)
-    error_bimap = tf.multiply(error,known_2d)
-    return tf.reduce_mean(error),tf.reduce_mean(error_bimap)
-
-def getLossMSE2(trimap, labels_node):    
-    shape = tf.shape(trimap)
-    label = tf.one_hot(labels_node,2)
-    bimap = trimap[:,:,:,0:2]
-    error = tf.square(label - bimap)
-    known = tf.cast( tf.arg_max(trimap,3) < 2, tf.float32)
-    
-    known_re = tf.reshape(known, [-1,shape[1],shape[2],1])    
-    known_2d = tf.concat([known_re,known_re],3)    
-    error_bimap = tf.multiply(error,known_2d)
-    
-    return tf.reduce_mean(error_bimap)
 
 def getLossMSE_penalty(trimap, labels_node):    
     shape = tf.shape(trimap)
@@ -161,9 +134,9 @@ def main(argv=None):
         print ('save_path', save_path)      
     
     trimap_mask,unknown_mask = sess.run([trimap,unknown], feed_dict= feed_dict_test)    
-    DataReader.SaveAsImage(unknown_mask, predictImagePath, trimap_mask.shape[0])    
+    DataReader.SaveAsImage(unknown_mask, ImagePath2, trimap_mask.shape[0])    
     print ('trimap_mask',trimap_mask.shape)
-    DataReader.SaveImage(trimap_mask,predictImagePath)
+    DataReader.SaveImage(trimap_mask,ImagePath1)
     
 
 def getIoU(label,predict):
@@ -175,25 +148,6 @@ def getIoU(label,predict):
     union = tf.subtract(tf.add(logits,trn_labels),tf.multiply(logits,trn_labels))
     iou = tf.reduce_sum(inter)/tf.reduce_sum(union)
     return tf.cast(iou,tf.float32)
-
-def getLossTrimap(trimap, labels_node):    
-    trimap_shape = tf.shape(trimap)
-    unknown = tf.cast( tf.arg_max(trimap,3) < 2, tf.int32)    
-    unknown_reshape = tf.reshape(unknown, [-1])
-    unknown_reshape_flt32 = tf.cast(unknown_reshape,tf.float32)
-    trimap_serial =  tf.reshape(trimap, [-1, 3])
-    trimap_serial = tf.nn.softmax(trimap_serial)
-    label_reshape = tf.reshape(labels_node, [-1])    
-    label_reshape = tf.multiply(label_reshape, unknown_reshape)
-    label_reshape = tf.cast(label_reshape,tf.int32)
-    hot = tf.cast( tf.one_hot(unknown_reshape,3),tf.float32)
-    trimap_serial2 = tf.multiply(trimap_serial, hot)
-    entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits = trimap_serial, labels = label_reshape)    
-    entropy2 = tf.nn.sparse_softmax_cross_entropy_with_logits(logits = trimap_serial2, labels = label_reshape)    
-    print('trimap',trimap)
-    print('entropy', entropy)
-    print('unknown_reshape', unknown_reshape)
-    return  tf.reduce_mean(entropy),tf.reduce_mean(entropy2) 
 
 def regularizer():
     regula=0

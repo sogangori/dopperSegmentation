@@ -10,13 +10,12 @@ import numpy
 from six.moves import urllib
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
-import Model_helper2 as helper
+import Model_helper as helper
 
 modelName = "./Color/weights/narrow_helper.pd"#narrow_
 LABEL_SIZE_C = 2
 NUM_CHANNELS_In= 3
 pool_stride2 =[1, 2, 2, 1]
-pool_stride3 =[1, 3, 3, 1]
 depth0 = 3
 
 #depth 1 : 86%, 82% loss 0.15x shape bad
@@ -65,21 +64,19 @@ conv_l2_biases = tf.Variable(tf.zeros([depth0]))
 conv_l3_weights = tf.get_variable("l3", shape=[3, 3, depth0, LABEL_SIZE_C], initializer =tf.contrib.layers.xavier_initializer())
 conv_l3_biases = tf.Variable(tf.zeros([LABEL_SIZE_C]))
 
-step=0
 
-def inference(inData, train,step):
+def inference(inData, train=False):
     helper.isDrop = train
     helper.keep_prop = 0.6
     
-    src = tf.nn.avg_pool(inData,pool_stride2,strides=pool_stride2,padding='SAME')
-    #if step%3==1:  in2= tf.nn.avg_pool(inData,pool_stride2,strides=pool_stride2,padding='SAME')
-    #elif step%3==2:in2= tf.nn.avg_pool(inData,pool_stride3,strides=pool_stride3,padding='SAME')
     featureMap = []
-    #if train: inData = helper.Gaussian_noise_layer(inData, 0.1)
+    inData = tf.multiply(inData ,1.0)
+    #if train: inData = helper.Gaussian_noise_Add(inData, 0.1,0.3)
     
-    #1/2    
-    feature1 = pool = helper.conv2dRelu(src,conv_l0_weights,conv_l0_biases)
-
+    #1/2
+    in2 = tf.nn.avg_pool(inData,pool_stride2,strides=pool_stride2,padding='SAME')     
+    feature1 = pool = helper.conv2dRelu(in2,conv_l0_weights,conv_l0_biases)
+    
     #1/4
     pool = tf.nn.max_pool(pool,pool_stride2,strides=pool_stride2,padding='SAME')    
     feature2 = pool = helper.conv2dRelu(pool,conv_m0_weights,conv_m0_biases)   
@@ -148,5 +145,9 @@ def inference(inData, train,step):
   
     input_shape = inData.get_shape().as_list()
     pool = helper.resize(pool,input_shape[1] ,input_shape[2])
-
-    return pool; 
+    if not train: 
+        pool = tf.reshape(pool, [-1,LABEL_SIZE_C])
+        pool = tf.nn.softmax(pool)
+        input_shape[3] = LABEL_SIZE_C
+        pool = tf.reshape(pool, input_shape)
+    return pool,featureMap; 

@@ -9,7 +9,7 @@ import numpy
 from six.moves import urllib
 from six.moves import xrange 
 import tensorflow as tf
-import Model_helper as helper
+import Model_helper2 as helper
 
 modelName = "./Color/weights/depthwise3NOAVG.pd"
 #logName ="./Color/weights/logs_deconv3"
@@ -77,14 +77,12 @@ dconv_5_biases = tf.Variable(tf.zeros([depth0]))
 dconv_final_weights = tf.get_variable("d6", shape=[3, 3, LABEL_SIZE_C, depth0], initializer =tf.contrib.layers.xavier_initializer())
 dconv_final_biases = tf.Variable(tf.zeros([LABEL_SIZE_C]))
 
-def inference(inData, train=False):
+def inference(inData, train,step):
     helper.isDrop = train
     helper.keep_prop = 0.65   
-
-    featureMap = []
+        
     #1/2
-    inData = tf.multiply(inData ,1.0)
-    if train: inData = helper.Gaussian_noise_Add(inData, 0.15,0.25 )
+        
     in2 = tf.nn.avg_pool(inData,[1, 2, 2, 1],strides=pool_stride2,padding='SAME')    
     #in2 = inData 
     feature1 = pool = helper.conv2dRelu(in2,conv_l0_weights,conv_l0_biases)
@@ -109,51 +107,39 @@ def inference(inData, train=False):
     
     pool= tf.nn.max_pool(pool,pool_stride2,strides=pool_stride2,padding='SAME')    
     pool = helper.conv2dRelu(pool,conv_xx0_weights,conv_xx0_biases)
-    featureMap.append(inData)   
-    featureMap.append(feature1)
-    featureMap.append(feature2)
-    featureMap.append(feature3)
-    featureMap.append(feature4)
-    featureMap.append(feature5)
-    featureMap.append(feature6)
-    featureMap.append(pool)
     
-    pool = helper.upConv(pool, dconv_5_weights,dconv_5_biases, feature6.get_shape().as_list())
+    pool = helper.upConv(pool, dconv_5_weights,dconv_5_biases, tf.shape(feature6))
     pool = tf.nn.relu(tf.add(feature6, pool) )
     pool = helper.depthwiseConv2dRelu(pool,conv_x2_weights,conv_x2_biases)   
-    featureMap.append(pool)
     
-    pool = helper.upConv(pool, dconv_4_weights,dconv_4_biases, feature5.get_shape().as_list())
+    
+    pool = helper.upConv(pool, dconv_4_weights,dconv_4_biases, tf.shape(feature5))
     pool = tf.nn.relu(tf.add(feature5, pool) )
     pool = helper.depthwiseConv2dRelu(pool,conv_p2_weights,conv_p2_biases)   
-    featureMap.append(pool)
+    
  
-    pool = helper.upConv(pool, dconv_3_weights,dconv_3_biases, feature4.get_shape().as_list())
+    pool = helper.upConv(pool, dconv_3_weights,dconv_3_biases, tf.shape(feature4))
     pool = tf.nn.relu(tf.add(feature4, pool) )
     pool = helper.depthwiseConv2dRelu(pool,conv_t2_weights,conv_t2_biases)   
-    featureMap.append(pool)
+    
 
-    pool = helper.upConv(pool, dconv_2_weights,dconv_2_biases, feature3.get_shape().as_list())
+    pool = helper.upConv(pool, dconv_2_weights,dconv_2_biases, tf.shape(feature3))
     pool = tf.nn.relu(tf.add(feature3, pool)) 
     pool = helper.depthwiseConv2dRelu(pool,conv_s2_weights,conv_s2_biases)   
-    featureMap.append(pool)
+    
 
-    pool = helper.upConv(pool, dconv_1_weights,dconv_1_biases, feature2.get_shape().as_list())
+    pool = helper.upConv(pool, dconv_1_weights,dconv_1_biases, tf.shape(feature2))
     pool = tf.nn.relu(tf.add(feature2, pool)) 
-    pool = helper.depthwiseConv2dRelu(pool,conv_m2_weights,conv_m2_biases)   
-    featureMap.append(pool)
+    pool = helper.depthwiseConv2dRelu(pool,conv_m2_weights,conv_m2_biases)  
 
-    pool = helper.upConv(pool, dconv_0_weights,dconv_0_biases, feature1.get_shape().as_list())
+    pool = helper.upConv(pool, dconv_0_weights,dconv_0_biases, tf.shape(feature1))
     pool = tf.nn.relu(tf.add(feature1, pool)) 
-    pool = helper.depthwiseConv2dRelu(pool,conv_l2_weights,conv_l2_biases)    
-    featureMap.append(pool)
-
-    out_shape = inData.get_shape().as_list()
-    out_shape[3] = LABEL_SIZE_C
-    pool = helper.upConvRelu(pool,dconv_final_weights,dconv_final_biases, out_shape)   
-    if not train: 
-        pool = tf.reshape(pool, [-1,LABEL_SIZE_C])
-        pool = tf.nn.softmax(pool)
-        pool = tf.reshape(pool, out_shape)
-    return pool,featureMap; 
+    pool = helper.depthwiseConv2dRelu(pool,conv_l2_weights,conv_l2_biases)        
+    
+    shape = tf.shape(inData)
+    print ('----------------------shape',shape)
+    shape = [shape[0],shape[1],shape[2],2]
+    pool = helper.upConvRelu(pool,dconv_final_weights,dconv_final_biases, shape)   
+ 
+    return pool; 
 

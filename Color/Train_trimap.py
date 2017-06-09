@@ -11,7 +11,7 @@ from six.moves import xrange
 import tensorflow as tf
 from operator import or_
 from DataReader import DataReader
-import Model_bn_narrow_x as model 
+import Model_narrow as model 
 #http://angusg.com/writing/2016/12/28/optimizing-iou-semantic-segmentation.html
 hiddenImagePath = "./Color/weights/hidden/"
 predictImagePath = "./Color/weights/predict"
@@ -21,11 +21,11 @@ inImagePath = "./Color/weights/in"
 DataReader = DataReader()
 EVAL_BATCH_SIZE = 10
 EVAL_FREQUENCY = 5
-AUGMENT = 2
-DATA_SIZE = 200#360+131+130 #max 360 + 131 + 130 = 621
-BATCH_SIZE = np.int(DATA_SIZE/2)  # * AUGMENT
-NUM_EPOCHS = 10
-isNewTrain = not True                 
+AUGMENT = 1
+DATA_SIZE = 20#360+131+130 #max 360 + 131 + 130 = 621
+BATCH_SIZE = np.int(DATA_SIZE)  
+NUM_EPOCHS = 50
+isNewTrain =  not True                 
 #82 43%, bn: 83 39
 def main(argv=None):        
   train_data, train_labels,train_help = DataReader.GetDataAug(DATA_SIZE, AUGMENT, isTrain =  True);  
@@ -41,7 +41,7 @@ def main(argv=None):
   IsTrain = tf.placeholder(tf.bool)
   Step = tf.placeholder(tf.int32)
   
-  prediction, feature_map = model.inference(X, IsTrain, Step)    
+  prediction = model.inference(X, IsTrain, Step)    
   argMax = tf.cast( tf.arg_max(prediction,3), tf.int32)
   accuracy = tf.contrib.metrics.accuracy(argMax,Y)     
   mean_iou = getIoU(Y,argMax)
@@ -49,7 +49,7 @@ def main(argv=None):
   loss_iou = 1 - mean_iou   
   loss = entropy + 1e-5 * regularizer()    
   batch = tf.Variable(0)
-  LearningRate = 0.01
+  LearningRate = 0.001
   DecayRate = 0.999
   
   learning_rate = tf.train.exponential_decay(
@@ -141,7 +141,7 @@ def main(argv=None):
         save_path = saver.save(sess, model.modelName)
         print ('save_path', save_path)      
             
-    predict,feature_map_,test_acc = sess.run([prediction, feature_map,accuracy], feed_dict=feed_dict_test)
+    predict,test_acc = sess.run([prediction, accuracy], feed_dict=feed_dict_test)
     print('accuracy train:%.2f, test:%.2f' % (iou, iou_test))                    
     DataReader.SaveAsImage(predict[:,:,:,1], predictImagePath, EVAL_BATCH_SIZE, maxCount = 10)
     #DataReader.SaveFeatureMap(feature_map, "./Color/weights/featureMap/fm", EVAL_BATCH_SIZE, maxCount = 1)
