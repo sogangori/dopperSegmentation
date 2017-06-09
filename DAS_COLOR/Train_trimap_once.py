@@ -11,7 +11,7 @@ from six.moves import xrange
 import tensorflow as tf
 from operator import or_
 from DataReader import DataReader
-import Model_trimap_once as model 
+import Model_trimap_2x as model 
 #http://angusg.com/writing/2016/12/28/optimizing-iou-semantic-segmentation.html
 folder = "./DAS_COLOR/weights/"
 hiddenImagePath = folder+"hidden/"
@@ -20,12 +20,53 @@ outImagePath = folder+"out"
 inImagePath = folder+"in"
 
 DataReader = DataReader()
-EVAL_FREQUENCY = 20
-AUGMENT = 5
+EVAL_FREQUENCY = 10
+AUGMENT = 4
 DATA_SIZE = 12
 BATCH_SIZE = np.int(DATA_SIZE)  
-NUM_EPOCHS = 2
+NUM_EPOCHS = 1
 isNewTrain = not True      
+
+def getLossMSE(trimap, labels_node):    
+    label = tf.one_hot(labels_node,3)
+    predict = trimap
+    error = tf.square(label-predict)
+    known = tf.cast( tf.arg_max(trimap,3) < 2, tf.float32)
+    # = 1+tf.nn.softmax(trimap)[:,:,:,2]
+    #known = tf.multiply(known,error_w)
+    shape = tf.shape(known)
+    known_re = tf.reshape(known, [-1,shape[1],shape[2],1])    
+    known_prob = tf.reshape(1-tf.nn.softmax(trimap)[:,:,:,2],[-1,shape[1],shape[2],1])     
+    #known_2d = tf.concat([known_re,known_re,tf.zeros_like(known_re)],3)
+    known_2d = tf.concat([known_re,known_re,known_prob],3)
+    error_bimap = tf.multiply(error,known_2d)
+    return tf.reduce_mean(error),tf.reduce_mean(error_bimap)
+
+def getLossMSE2(trimap, labels_node):    
+    shape = tf.shape(trimap)
+    label = tf.one_hot(labels_node,2)
+    bimap = trimap[:,:,:,0:2]
+    error = tf.square(label - bimap)
+    known = tf.cast( tf.arg_max(trimap,3) < 2, tf.float32)
+    
+    known_re = tf.reshape(known, [-1,shape[1],shape[2],1])    
+    known_2d = tf.concat([known_re,known_re],3)    
+    error_bimap = tf.multiply(error,known_2d)
+    
+    return tf.reduce_mean(error_bimap)
+
+def getLossMSE_penalty(trimap, labels_node):    
+    shape = tf.shape(trimap)
+    label = tf.one_hot(labels_node,2)
+    bimap = trimap[:,:,:,0:2]
+    error = tf.square(label - bimap)
+    trimap_prob = tf.nn.softmax(trimap)
+    known_idx = tf.cast( tf.arg_max(trimap,3) < 2, tf.float32)
+    known_prob = known_idx * (1-trimap_prob[:,:,:,2])
+    known_re = tf.reshape(known_prob, [-1,shape[1],shape[2],1])    
+    weight = tf.concat([known_re,known_re],3)    
+    error_bimap = tf.multiply(error,weight)    
+    return tf.reduce_mean(error_bimap)
 
 def main(argv=None):        
 
@@ -39,12 +80,19 @@ def main(argv=None):
   
   trimap = model.inference(X, IsTrain, Step)        
   argMax = tf.cast( tf.arg_max(trimap,3), tf.int32)  
-  unknown = tf.cast( argMax > 1, tf.float32)
-  unknown_mean = tf.reduce_mean(unknown)
+  known = tf.cast( argMax < 2, tf.float32)  
+  unknown = tf.cast( argMax > 1, tf.float32)  
+  background = tf.cast( argMax < 1, tf.float32)
+  unknown_mean = tf.reduce_mean(unknown)  
+  background_mean = tf.reduce_mean(background)  
+  foreground_mean = 1.0 - unknown_mean - background_mean
+  
+  Y_known = tf.multiply(tf.cast(Y, tf.float32), known)
+  argMax_known = tf.multiply(tf.cast(argMax, tf.float32), known)
+  mean_iou_known = getIoU(Y_known,argMax_known)
   mean_iou = getIoU(Y,argMax)
-  entropy,entropy2 = getLossMSE(trimap, Y)  
-  loss = entropy2 + unknown_mean + 1e-5 * regularizer()    
-  #loss = entropy2 + 1e-5 * regularizer()    
+  entropy = getLossMSE_penalty(trimap, Y)    
+  loss = entropy + 1e-8 * tf.nn.l2_loss(tf.nn.softmax(trimap)[:,:,:,2]) + 1e-5 * regularizer()    
   batch = tf.Variable(0)
   LearningRate = 0.01
   DecayRate = 0.999
@@ -84,21 +132,18 @@ def main(argv=None):
       for iter in range((int)(test_offset/1)):
           batch_data = train_data[:,:,:,start_offsets[iter]:start_offsets[iter] + ensemble]          
           feed_dict = {X: batch_data, Y: train_labels, IsTrain:True,Step:step}      
-          _,unknown_m, l,l2, iou,lr = sess.run([optimizer,unknown_mean, entropy,entropy2, mean_iou, learning_rate], feed_dict)
-          #summary_writer.add_summary(summary, step)
+          _,unkno,fore,back, l, iou,iou_known,lr = sess.run([optimizer,unknown_mean, foreground_mean,background_mean,entropy, mean_iou, mean_iou_known,learning_rate], feed_dict)
+          
           if iter % EVAL_FREQUENCY == 0:
             elapsed_time = time.time() - start_time
             start_time = time.time()
             now = strftime("%H:%M:%S", localtime())
-            takes = 1000 * elapsed_time / EVAL_FREQUENCY            
-            
+            takes = 1000 * elapsed_time / EVAL_FREQUENCY           
             iou_test = sess.run(mean_iou, feed_dict_test)
         
-            print('%d/%d, %.0f ms, un:%.3f, loss %.3f,%f,IoU(%.3f,%.3f),lr %.4f, %s' % 
-                  (step, iter,takes,unknown_m,l,l2,iou,iou_test, lr*100,now))   
-            # Add histograms for trainable variables.
-            #for var in tf.trainable_variables(): tf.histogram_summary(var.op.name, var)
-    
+            print('e%d,i%d,%.0fms,tri(%.0f,%.0f,%.0f),L:%.3f,IoU(%.0f,%.0f),Iou_k:%.1f,lr %.4f, %s' % 
+                  (step, iter,takes,back*100,fore*100,unkno*100,l,iou*100,iou_test*100, iou_known*100,lr*100,now))   
+          
             sys.stdout.flush()
             if lr==0 or l>20: 
                 print ('lr l has problem  ',lr) 
@@ -110,7 +155,7 @@ def main(argv=None):
                 save_path = saver.save(sess, model.modelName)
                 now = strftime("%H:%M:%S", localtime())
                 print("Model Saved, time:%s" %(now))      
-        
+           
     if sess.run(learning_rate)>0: 
         save_path = saver.save(sess, model.modelName)
         print ('save_path', save_path)      
@@ -148,19 +193,7 @@ def getLossTrimap(trimap, labels_node):
     print('trimap',trimap)
     print('entropy', entropy)
     print('unknown_reshape', unknown_reshape)
-    return  tf.reduce_mean(entropy),tf.reduce_mean(entropy2)      
-
-def getLossMSE(trimap, labels_node):    
-    label = tf.one_hot(labels_node,3)
-    predict = trimap
-    error = tf.square(label-predict)
-    known = tf.cast( tf.arg_max(trimap,3) < 2, tf.float32)            
-    known = tf.multiply(known, 1-tf.nn.softmax(trimap)[:,:,:,2])
-    shape = tf.shape(known)
-    known_re = tf.reshape(known, [-1,shape[1],shape[2],1])    
-    known_2d = tf.concat([known_re,known_re,tf.zeros_like(known_re)],3)
-    error_bimap = tf.multiply( error,known_2d)
-    return tf.reduce_mean(error),tf.reduce_mean(error_bimap)
+    return  tf.reduce_mean(entropy),tf.reduce_mean(entropy2) 
 
 def regularizer():
     regula=0
