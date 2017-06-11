@@ -16,6 +16,7 @@ import Model_trimap_2x as model
 folder = "./DAS_Unknown/weights/"
 
 predictImagePath = folder+"predict"
+predictImagePath2 = folder+"tri_bimap"
 outImagePath = folder+"out"
 inImagePath = folder+"in"
 
@@ -48,6 +49,7 @@ def main(argv=None):
   
   trimap = model.inference(X, IsTrain, Step)        
   argMax = tf.cast( tf.arg_max(trimap,3), tf.int32)  
+  argMax_trimap = tf.cast( tf.arg_max(trimap[:,:,:,0:2],3), tf.int32)
   known = tf.cast( argMax < 2, tf.float32)  
   unknown = tf.cast( argMax > 1, tf.float32)  
   background = tf.cast( argMax < 1, tf.float32)
@@ -59,6 +61,7 @@ def main(argv=None):
   argMax_known = tf.multiply(tf.cast(argMax, tf.float32), known)
   mean_iou_known = getIoU(Y_known,argMax_known)
   mean_iou = getIoU(Y,argMax)
+  mean_iou_trimap = getIoU(Y,argMax_trimap)
   entropy = getLossMSE_penalty(trimap, Y)    
   loss = entropy + 1e-8 * tf.nn.l2_loss(tf.nn.softmax(trimap)[:,:,:,2]) + 1e-5 * regularizer()    
   batch = tf.Variable(0) 
@@ -79,25 +82,26 @@ def main(argv=None):
     start_offsets = np.arange(test_offset)   
     
     start_time = time.time()
-    unkno,fore,back, l, iou,iou_known = sess.run([unknown_mean, foreground_mean,background_mean,entropy, mean_iou, mean_iou_known], feed_dict_test)
+    unkno,fore,back, l,iou_tri, iou,iou_known = sess.run([unknown_mean, foreground_mean,background_mean,entropy, mean_iou_trimap,mean_iou, mean_iou_known], feed_dict_test)
     elapsed_time = time.time() - start_time        
                 
-    print('%.0f ms, trimap(%.1f, %.1f, %.1f), L:%g, IoU(%g), Iou_k:%g' % 
-            (elapsed_time,back*100,fore*100,unkno*100,l,iou*100, iou_known*100))   
+    print('%.0f ms, trimap(%.1f, %.1f, %.1f), L:%g, IoU_tri(%g), IoU(%g), Iou_k:%g' % 
+            (elapsed_time,back*100,fore*100,unkno*100,l,iou_tri,iou*100, iou_known*100))   
           
     sys.stdout.flush()
     
-    trimap_mask,unknown_mask = sess.run([trimap,unknown], feed_dict= feed_dict_test)    
+    tri_bimap, trimap_mask,unknown_mask = sess.run([argMax_trimap,trimap,unknown], feed_dict= feed_dict_test)    
     DataReader.SaveAsImage(unknown_mask, predictImagePath, trimap_mask.shape[0])    
     print ('trimap_mask',trimap_mask.shape)
     DataReader.SaveImage(trimap_mask,predictImagePath)
+    DataReader.SaveImage(tri_bimap,predictImagePath2)
     
 
 def getIoU(label,predict):
     label = tf.round(label)    
     predict = tf.round(predict)
     trn_labels = tf.reshape(label, [-1])
-    logits=tf.reshape(predict, [-1])
+    logits = tf.reshape(predict, [-1])
     inter = tf.multiply(logits,trn_labels)
     union = tf.subtract(tf.add(logits,trn_labels),tf.multiply(logits,trn_labels))
     iou = tf.reduce_sum(inter)/tf.reduce_sum(union)

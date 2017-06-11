@@ -21,8 +21,8 @@ outImagePath = folder+"out"
 inImagePath = folder+"in"
 
 DataReader = DataReader()
-EVAL_FREQUENCY = 10
-AUGMENT = 1
+EVAL_FREQUENCY = 20
+AUGMENT = 3
 DATA_SIZE = 12 
 BATCH_SIZE = np.int(DATA_SIZE)  
 NUM_EPOCHS = 1
@@ -34,7 +34,7 @@ def getLossMSE(bimap, labels_node, trimap):
     label = tf.one_hot(labels_node,2)    
     error = tf.square(label - bimap)
     bimap_prob = tf.nn.softmax(bimap)
-    unknown_idx = tf.cast(tf.arg_max(trimap,3) > 1, tf.float32)    
+    unknown_idx = tf.cast(tf.arg_max(trimap,3) > 1, tf.float32)+0.1
     unknown_4d = tf.reshape(unknown_idx, [-1,shape[1],shape[2],1])    
     unknown_mask = tf.concat([unknown_4d,unknown_4d],3)    
     error_bimap = tf.multiply(error,unknown_mask)    
@@ -53,13 +53,12 @@ def main(argv=None):
   trimap = modelTrimap.inference(X, false_co, Step)
   bimap = model.inference(X, IsTrain, Step)
   argMax = tf.cast( tf.arg_max(bimap,3), tf.int32)  
-  bimap_fore_idx = tf.cast(tf.arg_max(bimap,3) > 0, tf.float32)    
+  bimap_fore_idx = tf.cast(tf.arg_max(bimap,3), tf.float32)    
   trimap_argMax = tf.arg_max(trimap,3)
   trimap_unknown_idx = tf.cast(trimap_argMax > 1, tf.float32)
   trimap_back_idx = tf.cast(trimap_argMax < 1, tf.float32)    
-  trimap_fore_idx = tf.ones_like(trimap_back_idx) - trimap_back_idx - trimap_unknown_idx 
-  bimap_known_idx = tf.multiply(bimap_fore_idx,trimap_unknown_idx)
-  final_bimap = tf.add(bimap_known_idx,trimap_fore_idx)
+  trimap_fore_idx = tf.ones_like(trimap_back_idx) - trimap_back_idx - trimap_unknown_idx   
+  final_bimap = tf.cast( tf.add(bimap_fore_idx,trimap_fore_idx)-trimap_back_idx>0 , tf.float32)
   mean_iou = getIoU(Y,argMax)
   mean_iou_final = getIoU(Y,tf.cast(final_bimap,tf.int32))
   entropy = getLossMSE(bimap, Y,trimap)    
@@ -103,6 +102,8 @@ def main(argv=None):
       np.random.shuffle(start_offsets)
       for iter in range((int)(test_offset/1)):
           batch_data = train_data[:,:,:,start_offsets[iter]:start_offsets[iter] + ensemble]          
+          feed_dict = {X: batch_data[::-1], Y: train_labels[::-1], IsTrain:True,Step:step}      
+          _,l, iou_r,iou_final_r,lr = sess.run([optimizer,entropy, mean_iou,mean_iou_final, learning_rate], feed_dict)          
           feed_dict = {X: batch_data, Y: train_labels, IsTrain:True,Step:step}      
           _,l, iou,iou_final,lr = sess.run([optimizer,entropy, mean_iou,mean_iou_final, learning_rate], feed_dict)
           
@@ -113,8 +114,8 @@ def main(argv=None):
             takes = 1000 * elapsed_time / EVAL_FREQUENCY           
             iou_test = sess.run(mean_iou, feed_dict_test)
         
-            print('e%d,i%d,%.0fms,L:%.3f,IoU(%.0f,%.0f, %.0f),lr %.4f, %s' % 
-                  (step, iter,takes,l,iou*100,iou_test*100,iou_final*100,lr*100,now))   
+            print('e%d,i%d,%.0fms,L:%.3f,IoU_r(%.0f,%.0f), IoU(%.0f,%.0f, %.0f),lr %.4f, %s' % 
+                  (step, iter,takes,l,iou_r*100,iou_final_r*100,iou*100,iou_test*100,iou_final*100,lr*100,now))   
           
             sys.stdout.flush()
             if lr==0 or l>20: 

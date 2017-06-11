@@ -71,7 +71,7 @@ class DataReader():
         return [setIn, setOut] 
 
     def Augment(self, src0, src1, aug):
-        if aug > 6: aug=6
+        if aug > 3: aug=3
         n = src0.shape[0]
         h = src0.shape[1]
         w = src0.shape[2]
@@ -87,21 +87,9 @@ class DataReader():
                 setIn[n1,:]= np.fliplr(setIn_one)
                 setOut[n1,:]= np.fliplr(setOut_one) 
             if aug > 2:
-                n2 = i+n*2
-                setIn[n2,:]= setIn_one[::-1]
-                setOut[n2,:]= setOut_one[::-1]
-            if aug > 3:
-                n3 = i+n*3
-                setIn[n3,:]= np.flipud(setIn[n2,:])
-                setOut[n3,:]= np.flipud(setOut[n2,:])           
-            if aug > 4:
-                n4 = i+n*4
-                setIn[n4,:]= np.fliplr(setIn[n2,:])
-                setOut[n4,:]= np.fliplr(setOut[n2,:]) 
-            if aug > 5:
-                n5 = i+n*5
-                setIn[n5,:]= np.flipud(setIn_one)
-                setOut[n5,:]= np.flipud(setOut_one) 
+                n2 = i+n*2              
+                setIn[n2,:]= np.flipud(setIn_one)
+                setOut[n2,:]= np.flipud(setOut_one) 
         return [setIn, setOut]
 
     def GetDataAug(self, n, aug):        

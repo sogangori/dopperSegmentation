@@ -4,7 +4,7 @@ import numpy as np
 
 keep_prop = 1.0
 isDrop = False
-
+isTrain = False
 
 def dropout(src):
     src = tf.cond(isDrop, lambda:tf.nn.dropout(src, keep_prop), lambda:identity(src))
@@ -45,9 +45,12 @@ def Gaussian_noise_volumn_layer(input_layer, std):
     noise = tf.random_normal(shape , mean = 1.0, stddev = std, dtype = tf.float32) 
     return input_layer * noise
 
-def Gaussian_noise_Add(input_layer, stdAlpha, stdBeta):
+def Gaussian_noise(input_layer, stdAlpha, stdBeta):
     src = Gaussian_noise_volumn_layer(input_layer,stdAlpha)
     return Gaussian_noise_layer(src,stdBeta)   
+
+def Gaussian_noise_Add(input_layer, stdAlpha, stdBeta):
+    return tf.cond(isTrain, lambda:Gaussian_noise(input_layer,stdAlpha,stdBeta), lambda:identity(input_layer))
 
 def upConv(src, weights, bias,up_shape):
     output = tf.nn.conv2d_transpose(src,weights,output_shape=up_shape, strides=[1, 2, 2, 1],padding='SAME')
@@ -84,12 +87,12 @@ def batch_norm(src, beta, gamma, isTrain):
     mean, var = tf.cond(isTrain, mean_var_with_update, lambda:(ema.average(batch_mean),ema.average(batch_var)))    
     return tf.nn.batch_normalization(src, mean,var, beta, gamma,1e-3)
 
-def conv2dBN(src, weights, beta,gamma, isTrain):
+def conv2dBN(src, weights, beta,gamma):
     src = dropout(src)
     conv = tf.nn.conv2d(src,weights,strides=[1, 1, 1, 1],padding='SAME')
     return batchNormal(conv,beta,gamma)
 
-def conv2dBN_Relu(src, weights, beta,gamma, isTrain):
+def conv2dBN_Relu(src, weights, beta,gamma):
     src_s = dropout(src)
     conv = tf.nn.conv2d(src_s,weights,strides=[1, 1, 1, 1],padding='SAME')
     bn = batchNormal(conv,beta,gamma)

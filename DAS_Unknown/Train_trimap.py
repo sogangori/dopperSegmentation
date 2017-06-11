@@ -22,11 +22,25 @@ inImagePath = folder+"in"
 
 DataReader = DataReader()
 EVAL_FREQUENCY = 10
-AUGMENT = 4
+AUGMENT = 3
 DATA_SIZE = 12
 BATCH_SIZE = np.int(DATA_SIZE)  
 NUM_EPOCHS = 1
-isNewTrain = not True      
+isNewTrain =  not True      
+ 
+def getLoss_log(trimap, labels_node):    
+    shape = tf.shape(trimap)
+    label = tf.one_hot(labels_node,2)
+    trimap_prob = tf.nn.softmax(trimap)
+    bimap = tf.nn.softmax(trimap[:,:,:,0:2])
+    #cost = -tf.reduce_mean(Y * tf.log(hypothesis) + (1 - Y) *tf.log(1 - hypothesis))
+    error = -1*(tf.multiply(label, tf.log(bimap) ) + tf.multiply((1-label), tf.log(1-bimap)))    
+    known_idx = tf.cast( tf.arg_max(trimap,3) < 2, tf.float32)
+    known_prob = known_idx * (1-trimap_prob[:,:,:,2])
+    known_re = tf.reshape(known_prob, [-1,shape[1],shape[2],1])    
+    weight = tf.concat([known_re,known_re],3)    
+    error_bimap = tf.multiply(error,weight)    
+    return tf.reduce_mean(error_bimap)
 
 def getLossMSE_penalty(trimap, labels_node):    
     shape = tf.shape(trimap)
@@ -65,7 +79,13 @@ def main(argv=None):
   mean_iou_known = getIoU(Y_known,argMax_known)
   mean_iou = getIoU(Y,argMax)
   entropy = getLossMSE_penalty(trimap, Y)    
-  loss = entropy + 1e-8 * tf.nn.l2_loss(tf.nn.softmax(trimap)[:,:,:,2]) + 1e-5 * regularizer()    
+  trimap_prob = tf.nn.softmax(trimap)
+  trimap_prob_2d = tf.reshape(trimap_prob, [-1,3])
+  loss_unknown_l2 = tf.reduce_mean(tf.square(trimap_prob_2d[:,2])/2)
+  loss_unknown_l1 = tf.reduce_mean(tf.abs(trimap_prob_2d[:,2]))
+  loss_unknown = loss_unknown_l2
+  loss = entropy + 5e-2 * loss_unknown + 1e-5 * regularizer()    
+
   batch = tf.Variable(0)
   LearningRate = 0.01
   DecayRate = 0.999
@@ -103,9 +123,13 @@ def main(argv=None):
       model.step = step      
       np.random.shuffle(start_offsets)
       for iter in range((int)(test_offset/1)):
-          batch_data = train_data[:,:,:,start_offsets[iter]:start_offsets[iter] + ensemble]          
+          batch_data = train_data[:,:,:,start_offsets[iter]:start_offsets[iter] + ensemble]
+          feed_dict = {X: batch_data[::-1], Y: train_labels[::-1], IsTrain:True,Step:step}
+          _,unkno,fore,back, entro,l_unknown, iou,iou_known,lr = sess.run(
+              [optimizer,unknown_mean, foreground_mean,background_mean,entropy,loss_unknown, mean_iou, mean_iou_known,learning_rate], feed_dict)                
           feed_dict = {X: batch_data, Y: train_labels, IsTrain:True,Step:step}      
-          _,unkno,fore,back, l, iou,iou_known,lr = sess.run([optimizer,unknown_mean, foreground_mean,background_mean,entropy, mean_iou, mean_iou_known,learning_rate], feed_dict)
+          _,unkno,fore,back, entro,l_unknown, iou,iou_known,lr = sess.run(
+              [optimizer,unknown_mean, foreground_mean,background_mean,entropy,loss_unknown, mean_iou, mean_iou_known,learning_rate], feed_dict)
           
           if iter % EVAL_FREQUENCY == 0:
             elapsed_time = time.time() - start_time
@@ -114,11 +138,12 @@ def main(argv=None):
             takes = 1000 * elapsed_time / EVAL_FREQUENCY           
             iou_test = sess.run(mean_iou, feed_dict_test)
         
-            print('e%d,i%d,%.0fms,tri(%.0f,%.0f,%.0f),L:%.3f,IoU(%.0f,%.0f),Iou_k:%.1f,lr %.4f, %s' % 
-                  (step, iter,takes,back*100,fore*100,unkno*100,l,iou*100,iou_test*100, iou_known*100,lr*100,now))   
-          
+            print('e%d,i%d,%.0fms,tri(%.0f,%.0f,%.0f),L:(%g,%.4f),IoU(%.0f,%.0f),Iou_k:%.1f,lr %.4f' % 
+                  (step, iter,takes,back*100,fore*100,unkno*100,entro,l_unknown,iou*100,iou_test*100, iou_known*100,lr*100))   
+            #print('trimap_sum', sess.run(trimap_sum,feed_dict))
+            
             sys.stdout.flush()
-            if lr==0 or l>20: 
+            if lr==0 or entro>20: 
                 print ('lr l has problem  ',lr) 
                 return
         
@@ -150,7 +175,7 @@ def getIoU(label,predict):
     return tf.cast(iou,tf.float32)
 
 def regularizer():
-    regula=0
+    regula=0    
     for var in tf.trainable_variables():         
         regula +=  tf.nn.l2_loss(var)
     return regula
