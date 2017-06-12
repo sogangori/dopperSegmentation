@@ -11,6 +11,7 @@ from six.moves import xrange
 import tensorflow as tf
 from operator import or_
 from DataReader import DataReader
+import Train_helper as helper
 import Model_trimap as model 
 
 folder = "./IQ_COLOR/weights/"
@@ -23,24 +24,11 @@ inImagePath = folder+"in"
 DataReader = DataReader()
 EVAL_BATCH_SIZE = 10
 EVAL_FREQUENCY = 5
-AUGMENT = 4
+AUGMENT = 3
 DATA_SIZE = 250
 BATCH_SIZE = np.int(DATA_SIZE)  
-NUM_EPOCHS = 20
-isNewTrain = not True      
- 
-def getLossMSE_penalty(trimap, labels_node):    
-    shape = tf.shape(trimap)
-    label = tf.one_hot(labels_node,2)
-    bimap = trimap[:,:,:,0:2]
-    error = tf.square(label - bimap)
-    trimap_prob = tf.nn.softmax(trimap)
-    known_idx = tf.cast( tf.arg_max(trimap,3) < 2, tf.float32)
-    known_prob = known_idx * (1-trimap_prob[:,:,:,2])
-    known_re = tf.reshape(known_prob, [-1,shape[1],shape[2],1])    
-    weight = tf.concat([known_re,known_re],3)    
-    error_bimap = tf.multiply(error,weight)    
-    return tf.reduce_mean(error_bimap)
+NUM_EPOCHS = 30
+isNewTrain = not True
 
 def main(argv=None):        
 
@@ -65,13 +53,13 @@ def main(argv=None):
   
   Y_known = tf.multiply(tf.cast(Y, tf.float32), known)
   argMax_known = tf.multiply(tf.cast(argMax, tf.float32), known)
-  mean_iou_known = getIoU(Y_known,argMax_known)
-  mean_iou = getIoU(Y,argMax)
-  entropy = getLossMSE_penalty(trimap, Y)    
+  mean_iou_known = helper.getIoU(Y_known,argMax_known)
+  mean_iou = helper.getIoU(Y,argMax)
+  entropy = helper.getLossMSE_penalty(trimap, Y)    
   trimap_prob = tf.nn.softmax(trimap)
   trimap_prob_2d = tf.reshape(trimap_prob, [-1,3])
   loss_unknown = tf.reduce_mean(tf.square(trimap_prob_2d[:,2])/2)
-  loss = entropy + 6e-2 * loss_unknown + 1e-5 * regularizer()    
+  loss = entropy + 5e-2 * loss_unknown + 1e-5 * helper.regularizer()    
 
   batch = tf.Variable(0)
   LearningRate = 0.01
@@ -148,23 +136,6 @@ def main(argv=None):
     DataReader.SaveAsImage(unknown_mask, ImagePath2, trimap_mask.shape[0])    
     print ('trimap_mask',trimap_mask.shape)
     DataReader.SaveImage(trimap_mask,ImagePath1)
-    
-
-def getIoU(label,predict):
-    label = tf.round(label)    
-    predict = tf.round(predict)
-    trn_labels = tf.reshape(label, [-1])
-    logits=tf.reshape(predict, [-1])
-    inter = tf.multiply(logits,trn_labels)
-    union = tf.subtract(tf.add(logits,trn_labels),tf.multiply(logits,trn_labels))
-    iou = tf.reduce_sum(inter)/tf.reduce_sum(union)
-    return tf.cast(iou,tf.float32)
-
-def regularizer():
-    regula=0    
-    for var in tf.trainable_variables():         
-        regula +=  tf.nn.l2_loss(var)
-    return regula
 
 tf.app.run()
 

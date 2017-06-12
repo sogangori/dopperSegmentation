@@ -5,7 +5,6 @@ trainData = DataReader();
 
 inData,outData = trainData.GetDataAug(9,1);
 
-
 print (inData.shape)
 print (outData.shape)
 

@@ -20,7 +20,7 @@ class DataReader():
     c = 3
     w = 256
     h = 256
-    startY =22
+    startY =24+4
     dstH = 128+32
     def __init__(self):
         print ("DataReader.py __init__") 
@@ -144,14 +144,14 @@ class DataReader():
                 setOut[n2,:]= np.flipud(setOut_one)   
             if aug > 3:
                 n3 = i+n*3
-                setIn[n3,:]= np.flipud(setIn[n1,:])
-                setOut[n3,:]= np.flipud(setOut[n1,:])
+                setIn[n3,:]= setIn_one[::-1]
+                setOut[n3,:]= setOut_one[::-1]
             if aug > 4:
-                setIn[i+n*4,:]= np.rot90(setIn_one)
-                setOut[i+n*4,:]= np.rot90(setOut_one)
+                setIn[i+n*4,:]= np.fliplr(setIn[n3,:])
+                setOut[i+n*4,:]= np.fliplr(setOut[n3,:])
             if aug > 5:
-                setIn[i+n*5,:]= np.rot90(setIn[n1,:])
-                setOut[i+n*5,:]= np.rot90(setOut[n1,:])      
+                setIn[i+n*5,:]= np.flipud(setIn[n3,:])
+                setOut[i+n*5,:]= np.flipud(setOut[n3,:])
             if aug > 6:
                 setIn[i+n*6,:]= np.rot90(setIn[n2,:])
                 setOut[i+n*6,:]= np.rot90(setOut[n2,:])
@@ -176,7 +176,7 @@ class DataReader():
             list.extend(list0)
             list.extend(list1)
             print ("[INFO] append count ", count,list[0])
-            #random.shuffle(list)  
+            random.shuffle(list)  
         if len(list) < count : count = len(list)
         print ("aug, limit count " ,aug, count,list[0])
         setIn = numpy.zeros(shape=(count ,h,w,c), dtype=numpy.float32)

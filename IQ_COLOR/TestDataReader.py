@@ -2,9 +2,9 @@
 import numpy
 
 trainData = DataReader();
-aug = 2
-count = 2
-inData,outData = trainData.GetDataAug(count =count, aug = aug, isTrain = True);
+aug = 1
+count = 10
+inData,outData = trainData.GetDataAug(count =count, aug = aug, isTrain = not True);
 
 print (inData.shape)
 print (outData.shape)

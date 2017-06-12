@@ -84,10 +84,10 @@ with tf.variable_scope('trimap'):
 def inference(inData, train,step):
     helper.isDrop = train
     helper.isTrain = train
-    helper.keep_prop = 0.9
+    helper.keep_prop = 0.6
     
     featureMap = []
-    inData = helper.Gaussian_noise_Add(inData, 0.2, 0.5)
+    inData = helper.Gaussian_noise_Add(inData, 0.2, 0.7)
     feature1 = pool = helper.conv2dBN_Relu(inData,conv_l0_weights,beta_l0,gamma_l0)
 
     #1/4
