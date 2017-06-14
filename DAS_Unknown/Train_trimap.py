@@ -84,7 +84,7 @@ def main(argv=None):
   loss_unknown_l2 = tf.reduce_mean(tf.square(trimap_prob_2d[:,2])/2)
   loss_unknown_l1 = tf.reduce_mean(tf.abs(trimap_prob_2d[:,2]))
   loss_unknown = loss_unknown_l2
-  loss = entropy + 5e-2 * loss_unknown + 1e-5 * regularizer()    
+  loss = entropy + 6e-2 * loss_unknown + 1e-5 * regularizer()    
 
   batch = tf.Variable(0)
   LearningRate = 0.01

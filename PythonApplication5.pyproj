@@ -5,13 +5,15 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>da2160d5-1e77-4900-b28b-0619bee67a80</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>DAS_Unknown\Train_trimap.py</StartupFile>
+    <StartupFile>DAS_Unknown\Test_DataReader.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>PythonApplication5</Name>
     <RootNamespace>PythonApplication5</RootNamespace>
+    <InterpreterId>{9a7a9026-48c1-4688-9d5d-e5699d47d074}</InterpreterId>
+    <InterpreterVersion>3.5</InterpreterVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -22,6 +24,13 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="BN\BN_Load.py" />
+    <Compile Include="BN\Moment.py" />
+    <Compile Include="BN\AxisTest.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="BN\BN.py" />
+    <Compile Include="BN\SaveVariables.py" />
     <Compile Include="Color\DataReader.py" />
     <Compile Include="Color\Model_bn_IoU_narrow.py" />
     <Compile Include="Color\Model_bn_narrow_x.py" />
@@ -85,13 +94,37 @@
     <Compile Include="DAS_COLOR\Train_recur.py" />
     <Compile Include="DAS_COLOR\Train.py" />
     <Compile Include="DAS_Unknown\DataReader.py" />
+    <Compile Include="DAS_Unknown\Model_bimap_from_trimap.py" />
     <Compile Include="DAS_Unknown\Model_helper.py" />
     <Compile Include="DAS_Unknown\Model_bimap.py" />
     <Compile Include="DAS_Unknown\Model_trimap_2x.py" />
-    <Compile Include="DAS_Unknown\TestDataReader.py" />
+    <Compile Include="DAS_Unknown\SaveVariables.py" />
+    <Compile Include="DAS_Unknown\Test_DataReader.py" />
     <Compile Include="DAS_Unknown\Test_trimap.py" />
+    <Compile Include="DAS_Unknown\Test_bimap.py" />
+    <Compile Include="DAS_Unknown\Train_bimap_from_tri.py" />
+    <Compile Include="DAS_Unknown\Train_bimap_from_trimap.py" />
     <Compile Include="DAS_Unknown\Train_bimap.py" />
+    <Compile Include="DAS_Unknown\Train_helper.py" />
     <Compile Include="DAS_Unknown\Train_trimap.py" />
+    <Compile Include="IQ_COLOR\DataReader.py" />
+    <Compile Include="IQ_COLOR\Model_bimap_self.py" />
+    <Compile Include="IQ_COLOR\Model_trimap_bn.py" />
+    <Compile Include="IQ_COLOR\Model_trimap_x.py" />
+    <Compile Include="IQ_COLOR\Model_trimap.py" />
+    <Compile Include="IQ_COLOR\Model_bimap.py" />
+    <Compile Include="IQ_COLOR\Model_helper.py" />
+    <Compile Include="IQ_COLOR\SaveVariables.py" />
+    <Compile Include="IQ_COLOR\TestDataReader.py" />
+    <Compile Include="IQ_COLOR\Test_bimap.py" />
+    <Compile Include="IQ_COLOR\Test_bimap_with_trimap.py" />
+    <Compile Include="IQ_COLOR\Train_bimap_with_trimap.py" />
+    <Compile Include="IQ_COLOR\Train_bimap.py" />
+    <Compile Include="IQ_COLOR\Test_trimapy.py" />
+    <Compile Include="IQ_COLOR\Train_helper.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="IQ_COLOR\Train_trimap.py" />
     <Compile Include="RF\DataReader.py">
       <SubType>Code</SubType>
     </Compile>
@@ -123,6 +156,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tutorial\BatchTest.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tutorial\even_channel_slice.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tutorial\f1Score.py">
@@ -202,6 +238,9 @@
     <Folder Include="DAS_COLOR\weights\" />
     <Folder Include="DAS_Unknown\" />
     <Folder Include="DAS_Unknown\weights\" />
+    <Folder Include="IQ_COLOR\" />
+    <Folder Include="IQ_COLOR\weights\" />
+    <Folder Include="BN\" />
     <Folder Include="RF\" />
     <Folder Include="RF\weights\" />
     <Folder Include="Color\" />
@@ -218,6 +257,9 @@
       <SubType>Code</SubType>
     </Content>
     <Content Include="Score\Score.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="{9a7a9026-48c1-4688-9d5d-e5699d47d074}\3.5" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

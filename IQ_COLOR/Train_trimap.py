@@ -12,14 +12,12 @@ import tensorflow as tf
 from operator import or_
 from DataReader import DataReader
 import Train_helper as helper
-import Model_trimap as model 
+import Model_trimap_bn as model 
 
 folder = "./IQ_COLOR/weights/"
 hiddenImagePath = folder+"hidden/"
 ImagePath1 = folder+"trimap"
 ImagePath2 = folder+"unknown"
-outImagePath = folder+"out"
-inImagePath = folder+"in"
 
 DataReader = DataReader()
 EVAL_BATCH_SIZE = 10
@@ -27,7 +25,7 @@ EVAL_FREQUENCY = 5
 AUGMENT = 3
 DATA_SIZE = 250
 BATCH_SIZE = np.int(DATA_SIZE)  
-NUM_EPOCHS = 30
+NUM_EPOCHS = 50
 isNewTrain = not True
 
 def main(argv=None):        
@@ -102,7 +100,8 @@ def main(argv=None):
       model.step = step
       feed_dict = {X: train_data[offset:(offset + BATCH_SIZE)],
                    Y: train_label[offset:(offset + BATCH_SIZE)],
-                   IsTrain:True,Step:step}      
+                   IsTrain:True,Step:step}            
+      sess.run(optimizer, feed_dict= {X: feed_dict[X][::-1],Y: feed_dict[Y][::-1], IsTrain:True,Step:step})
       _,unkno,fore,back, entro,l_unknown, iou,iou_known,lr = sess.run(
               [optimizer,unknown_mean, foreground_mean,background_mean,entropy,loss_unknown, mean_iou, mean_iou_known,learning_rate], feed_dict)
       if step % EVAL_FREQUENCY == 0:
@@ -138,5 +137,3 @@ def main(argv=None):
     DataReader.SaveImage(trimap_mask,ImagePath1)
 
 tf.app.run()
-
-

@@ -118,7 +118,35 @@ class DataReader():
         print ('test_in',test0.shape)
         print ('test_out',test1.shape)        
         return train0,train1,test0,test1
-                 
+    
+    def Append_ensemble(self,data_in,data_out, ensemble):   
+        data_in_a = data_in[:,:,:,0:ensemble]
+        data_out_a = data_out
+        for i in range(data_in.shape[3] - ensemble):
+            data_in_b = data_in[:,:,:,1+i:1+i+ensemble]
+            data_in_a = np.append(data_in_a, data_in_b, axis=0)
+            data_out_a = np.append(data_out_a, data_out, axis=0)
+        return data_in_a,data_out_a
+
+    def GetData3(self, count, aug, ensemble):        
+        setIn, setOut = self.GetData(count)        
+        count = setIn.shape[3]
+        
+        offset0 = count - ensemble * 3
+        offset1 = count - ensemble * 1
+
+        in_train = setIn[:,:,:,0:offset0]
+        in_val = setIn[:,:,:,offset0:offset1]
+        in_test = setIn[:,:,:,offset1:]
+                
+        out_train = out_val = out_test = setOut
+
+        in_val,out_val = self.Append_ensemble(in_val,out_val,ensemble)
+        in_test,out_test = self.Append_ensemble(in_test,out_test,ensemble)
+
+        in_train,out_train = self.Augment(in_train,out_train, aug)
+        return in_train,out_train,in_val,out_val, in_test, out_test
+    
     def SaveAsImage(self, src, filePath, count = 1):
         ext = ".png"        
         print ("SaveAsImage","count:", count, src.shape, filePath, ext)

@@ -12,7 +12,7 @@ import tensorflow as tf
 from operator import or_
 from DataReader import DataReader
 import Train_helper as helper
-import Model_trimap as model 
+import Model_trimap_bn as model 
 
 folder = "./IQ_COLOR/weights/"
 hiddenImagePath = folder+"hidden/"

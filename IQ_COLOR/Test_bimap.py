@@ -12,7 +12,7 @@ import tensorflow as tf
 from operator import or_
 from DataReader import DataReader
 import Train_helper as helper
-import Model_bimap as model 
+import Model_bimap_self as model 
 #http://angusg.com/writing/2016/12/28/optimizing-iou-semantic-segmentation.html
 hiddenImagePath = "./IQ_COLOR/weights/hidden/"
 predictImagePath = "./IQ_COLOR/weights/predict"

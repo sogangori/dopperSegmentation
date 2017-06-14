@@ -11,8 +11,7 @@ from six.moves import xrange
 import tensorflow as tf
 from operator import or_
 from DataReader import DataReader
-import Model_bimap as model 
-#http://angusg.com/writing/2016/12/28/optimizing-iou-semantic-segmentation.html
+import Model_bimap_self as model 
 hiddenImagePath = "./IQ_COLOR/weights/hidden/"
 predictImagePath = "./IQ_COLOR/weights/predict"
 
@@ -22,7 +21,7 @@ EVAL_FREQUENCY = 5
 AUGMENT = 4
 DATA_SIZE = 200#360+131+130 #max 360 + 131 + 130 = 621
 BATCH_SIZE = np.int(DATA_SIZE/2)  # * AUGMENT
-NUM_EPOCHS = 10
+NUM_EPOCHS = 20
 isNewTrain = not True                 
 #82 43%, bn: 83 39
 def main(argv=None):

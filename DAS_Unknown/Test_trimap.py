@@ -21,7 +21,6 @@ outImagePath = folder+"out"
 inImagePath = folder+"in"
 
 DataReader = DataReader()
-AUGMENT = 1
 DATA_SIZE = 12
 
 def getLossMSE_penalty(trimap, labels_node):    
@@ -40,7 +39,7 @@ def getLossMSE_penalty(trimap, labels_node):
 def main(argv=None):        
 
   ensemble = model.ensemble  
-  train_data, train_labels,test_data,test_label = DataReader.GetDataTrainTest(DATA_SIZE,AUGMENT,ensemble);  
+  train_data, train_labels,test_data,test_label = DataReader.GetDataTrainTest(DATA_SIZE,1,ensemble);  
   train_size = train_data.shape[0]           
   X = tf.placeholder(tf.float32, [None,train_data.shape[1],train_data.shape[2],ensemble])
   Y = tf.placeholder(tf.int32, [None,train_labels.shape[1],train_labels.shape[2]])
@@ -64,8 +63,7 @@ def main(argv=None):
   mean_iou_trimap = getIoU(Y,argMax_trimap)
   entropy = getLossMSE_penalty(trimap, Y)    
   loss = entropy + 1e-8 * tf.nn.l2_loss(tf.nn.softmax(trimap)[:,:,:,2]) + 1e-5 * regularizer()    
-  batch = tf.Variable(0) 
-
+  
   start_sec = start_time = time.time()
   config=tf.ConfigProto()
   # config.gpu_options.per_process_gpu_memory_fraction=0.98
@@ -82,7 +80,8 @@ def main(argv=None):
     start_offsets = np.arange(test_offset)   
     
     start_time = time.time()
-    unkno,fore,back, l,iou_tri, iou,iou_known = sess.run([unknown_mean, foreground_mean,background_mean,entropy, mean_iou_trimap,mean_iou, mean_iou_known], feed_dict_test)
+    unkno,fore,back, l,iou_tri, iou,iou_known = sess.run(
+        [unknown_mean, foreground_mean,background_mean,entropy, mean_iou_trimap,mean_iou, mean_iou_known], feed_dict_test)
     elapsed_time = time.time() - start_time        
                 
     print('%.0f ms, trimap(%.1f, %.1f, %.1f), L:%g, IoU_tri(%g), IoU(%g), Iou_k:%g' % 

@@ -6,15 +6,12 @@ import time
 import numpy as np
 from time import localtime, strftime
 import sklearn.metrics as metrics
-from six.moves import urllib
-from six.moves import xrange
 import tensorflow as tf
 from operator import or_
 from DataReader import DataReader
 import Train_helper as helper
 import Model_bimap as model 
 import Model_trimap as modelTrimap
-#http://angusg.com/writing/2016/12/28/optimizing-iou-semantic-segmentation.html
 hiddenImagePath = "./IQ_COLOR/weights/hidden/"
 predictImagePath = "./IQ_COLOR/weights/predict"
 ImagePath2 = "./IQ_COLOR/weights/final"
@@ -87,7 +84,7 @@ def main(argv=None):
     #summary_writer = tf.train.SummaryWriter(model.logName, sess.graph)
     #merged = tf.merge_all_summaries()
 
-    for step in xrange(int(NUM_EPOCHS * train_size) // BATCH_SIZE):
+    for step in range(int(NUM_EPOCHS * train_size) // BATCH_SIZE):
       # Compute the offset of the current minibatch in the data.
       # Note that we could use better randomization across epochs.
       offset = 0
@@ -97,7 +94,8 @@ def main(argv=None):
       model.step = step
       feed_dict = {X: train_data[offset:(offset + BATCH_SIZE)],
                    Y: train_labels[offset:(offset + BATCH_SIZE)],
-                   IsTrain:True,Step:step}      
+                   IsTrain:True,Step:step}    
+      sess.run(optimizer, feed_dict= {X: feed_dict[X][::-1],Y: feed_dict[Y][::-1], IsTrain:True,Step:step})  
       _, l,l2, iou,iou_final,lr = sess.run([optimizer, entropy,loss, mean_iou, mean_iou_final,learning_rate], feed_dict)
       if step % EVAL_FREQUENCY == 0:
         elapsed_time = time.time() - start_time
