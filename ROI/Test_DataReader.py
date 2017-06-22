@@ -30,7 +30,7 @@ def Test_validate():
     
 def Test_Label():
 
-    in_train,out_train,label_train,in_val,out_val,label_val,in_test,out_est,label_test = trainData.GetROISet(1,1,1)
+    in_train,out_train,label_train,in_val,out_val,label_val,in_test,out_test,label_test = trainData.GetROISet(1,1,1)
     print ('train',in_train.shape)
     print ('train',out_train.shape )
     print ('train',label_train.shape )
@@ -42,11 +42,13 @@ def Test_Label():
     print ('valid',label_val )
 
     print ('test',in_test.shape)
-    print ('test',out_est.shape )
+    print ('test',out_test.shape )
     print ('test',label_test.shape )
     print ('test',label_test )
     print ('test',label_test[:,0] )
     print ('test flipud',1 - label_test[:,0] )
+    print (np.sum( (out_test)))
+    print (np.sum( np.flipud(out_test)))
 
 #Test_Aug()
 #Test_validate()

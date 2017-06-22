@@ -21,7 +21,7 @@ AUGMENT = 1
 DATA_SIZE = 12
 BATCH_SIZE = np.int(DATA_SIZE)  
 NUM_EPOCHS = 1
-isNewTrain = not True      
+isNewTrain = True      
 
 def main(argv=None):        
 
@@ -70,6 +70,14 @@ def main(argv=None):
     feed_dict_test = {X: test_mask, Y: test_roi, IsTrain :False,Step:0}    
     test_offset = train_data.shape[3] - ensemble 
     start_offsets = np.arange(test_offset)
+
+    train_mask_ud = np.flipud(train_mask)
+    train_roi_ud = train_roi
+    train_roi_ud[:,0] = 1-train_roi_ud[:,0]
+    train_mask = np.append(train_mask, np.fliplr(train_mask),axis=0)
+    train_mask = np.append(train_mask, train_mask_ud,axis=0)
+    train_roi = np.append(train_roi, train_roi,axis=0)
+    train_roi = np.append(train_roi, train_roi_ud,axis=0)
     for step in xrange(NUM_EPOCHS):
       model.step = step      
       np.random.shuffle(start_offsets)
@@ -79,14 +87,7 @@ def main(argv=None):
           
           feed_dict = {X: train_mask, Y: train_roi, IsTrain:True,Step:step}       
           _,ly,lh, lr,roi_train_predic,diff_train = sess.run([optimizer,loss_y,loss_h, learning_rate,roi,diff], feed_dict)          
-                    
-          feed_dict_flip = {X: np.fliplr(train_mask), Y: train_roi, IsTrain:True,Step:step}      
-          sess.run(optimizer, feed_dict_flip)  
-
-          train_roi_ud = train_roi
-          train_roi_ud[:,0] = 1-train_roi_ud[:,0]
-          feed_dict_flip = {X: np.flipud(train_mask), Y: train_roi_ud, IsTrain:True,Step:step}      
-          sess.run(optimizer, feed_dict_flip)  
+         
           if iter % EVAL_FREQUENCY == 0:
             start_time = time.time()
             elapsed_time = time.time() - start_time

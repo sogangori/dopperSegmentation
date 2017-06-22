@@ -57,7 +57,7 @@ def inference(inData, train,step):
     inData = tf.reshape(inData, [-1, in_shape[1], in_shape[2],1])
     
     pool = tf.nn.avg_pool(inData,pool_stride2,strides=pool_stride2,padding='SAME')       
-    pool = helper.Gaussian_noise_Add(pool, 0.1, 0.3)
+    pool = helper.Gaussian_noise_Add(pool, 0.1, 0.1)
     #0
     pool = helper.conv2dBN_Relu(pool,conv_l0_weights,beta_l0,gamma_l0)
     pool = helper.conv2dBN_Relu(pool,conv_m0_weights,beta_m0,gamma_m0)   
@@ -71,12 +71,8 @@ def inference(inData, train,step):
     #2
     pool = tf.nn.max_pool(pool,pool_stride2,strides=pool_stride2,padding='SAME')    
     pool = helper.conv2dBN_Relu(pool,conv_p0_weights,beta_p0,gamma_p0)       
-    pool = helper.conv2dBN(pool,conv_x0_weights,beta_x0,gamma_x0)
-    pool = tf.nn.sigmoid(pool)
+    pool = helper.conv2dBN_Relu(pool,conv_x0_weights,beta_x0,gamma_x0)
 
-    pool_shape = pool.get_shape().as_list()
-    fc_shape = fc_weights.get_shape().as_list()
-    print ('######### last shape' , pool, pool_shape, pool.get_shape())
     pool = tf.reshape(pool, [-1, fc_in])    
     pool = tf.matmul(pool, fc_weights)
     pool = tf.add(pool, fc_bias)
