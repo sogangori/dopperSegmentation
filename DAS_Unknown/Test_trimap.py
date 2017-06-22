@@ -11,30 +11,14 @@ from six.moves import xrange
 import tensorflow as tf
 from operator import or_
 from DataReader import DataReader
-import Model_trimap_2x as model 
-#http://angusg.com/writing/2016/12/28/optimizing-iou-semantic-segmentation.html
+import Train_helper as helper
+import Model_trimap as model 
 folder = "./DAS_Unknown/weights/"
 
 predictImagePath = folder+"predict"
 predictImagePath2 = folder+"tri_bimap"
-outImagePath = folder+"out"
-inImagePath = folder+"in"
-
 DataReader = DataReader()
 DATA_SIZE = 12
-
-def getLossMSE_penalty(trimap, labels_node):    
-    shape = tf.shape(trimap)
-    label = tf.one_hot(labels_node,2)
-    bimap = trimap[:,:,:,0:2]
-    error = tf.square(label - bimap)
-    trimap_prob = tf.nn.softmax(trimap)
-    known_idx = tf.cast( tf.arg_max(trimap,3) < 2, tf.float32)
-    known_prob = known_idx * (1-trimap_prob[:,:,:,2])
-    known_re = tf.reshape(known_prob, [-1,shape[1],shape[2],1])    
-    weight = tf.concat([known_re,known_re],3)    
-    error_bimap = tf.multiply(error,weight)    
-    return tf.reduce_mean(error_bimap)
 
 def main(argv=None):        
 
@@ -58,18 +42,14 @@ def main(argv=None):
   
   Y_known = tf.multiply(tf.cast(Y, tf.float32), known)
   argMax_known = tf.multiply(tf.cast(argMax, tf.float32), known)
-  mean_iou_known = getIoU(Y_known,argMax_known)
-  mean_iou = getIoU(Y,argMax)
-  mean_iou_trimap = getIoU(Y,argMax_trimap)
-  entropy = getLossMSE_penalty(trimap, Y)    
-  loss = entropy + 1e-8 * tf.nn.l2_loss(tf.nn.softmax(trimap)[:,:,:,2]) + 1e-5 * regularizer()    
+  mean_iou_known = helper.getIoU(Y_known,argMax_known)
+  mean_iou = helper.getIoU(Y,argMax)
+  mean_iou_trimap = helper.getIoU(Y,argMax_trimap)
+  entropy = helper.getLossMSE_penalty(trimap, Y)    
+  loss = entropy + 1e-8 * tf.nn.l2_loss(tf.nn.softmax(trimap)[:,:,:,2]) + 1e-5 * helper.regularizer()    
   
-  start_sec = start_time = time.time()
-  config=tf.ConfigProto()
-  # config.gpu_options.per_process_gpu_memory_fraction=0.98
-  config.gpu_options.allocator_type="BFC"  
-  config.log_device_placement=False
-  with tf.Session(config=config) as sess:    
+  start_sec = start_time = time.time()  
+  with tf.Session() as sess:    
     saver = tf.train.Saver()  
     
     saver.restore(sess, model.modelName)
@@ -94,24 +74,5 @@ def main(argv=None):
     print ('trimap_mask',trimap_mask.shape)
     DataReader.SaveImage(trimap_mask,predictImagePath)
     DataReader.SaveImage(tri_bimap,predictImagePath2)
-    
-
-def getIoU(label,predict):
-    label = tf.round(label)    
-    predict = tf.round(predict)
-    trn_labels = tf.reshape(label, [-1])
-    logits = tf.reshape(predict, [-1])
-    inter = tf.multiply(logits,trn_labels)
-    union = tf.subtract(tf.add(logits,trn_labels),tf.multiply(logits,trn_labels))
-    iou = tf.reduce_sum(inter)/tf.reduce_sum(union)
-    return tf.cast(iou,tf.float32)
-
-def regularizer():
-    regula=0
-    for var in tf.trainable_variables():         
-        regula +=  tf.nn.l2_loss(var)
-    return regula
 
 tf.app.run()
-
-

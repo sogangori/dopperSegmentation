@@ -13,7 +13,7 @@ def Test_Aug():
         print ("inData ",n, " max ",np.max(inData[n]), ' min ' , np.min(inData[n]), ' mean ',  np.mean(inData[n]))
         print ("outData ",n," max ", np.max(outData[n]), ' min ' ,np.min(outData[n]), ' mean ', np.mean(outData[n]))
         
-    trainData.SaveAsImage(outData, "./DAS_Unknown/weights/out",outData.shape[0])
+    trainData.SaveAsImage(outData, "./DAS_Map/weights/out",outData.shape[0])
     #trainData.SaveAsImageByChannel(inData, "./DAS_COLOR/weights/in",)
 
 def Test_validate():
@@ -26,7 +26,7 @@ def Test_validate():
     print ('in_test',in_test.shape)
     print ('out_test',out_test.shape)
 
-    trainData.SaveAsImage(out_val, "./DAS_Unknown/weights/out_val",out_val.shape[0])
+    trainData.SaveAsImage(out_val, "./DAS_Map/weights/out_val",out_val.shape[0])
     
 
 #Test_Aug()

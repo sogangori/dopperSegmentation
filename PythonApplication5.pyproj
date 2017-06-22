@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>da2160d5-1e77-4900-b28b-0619bee67a80</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>DAS_Unknown\Test_DataReader.py</StartupFile>
+    <StartupFile>ROI\Train_roi_from_mask.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -93,16 +93,32 @@
     <Compile Include="DAS_COLOR\Train_trimap.py" />
     <Compile Include="DAS_COLOR\Train_recur.py" />
     <Compile Include="DAS_COLOR\Train.py" />
+    <Compile Include="DAS_Map\DataReader.py" />
+    <Compile Include="DAS_Map\Model_smap.py" />
+    <Compile Include="DAS_Map\Model_helper.py" />
+    <Compile Include="DAS_Map\Test_bimap.py" />
+    <Compile Include="DAS_Map\Test_DataReader.py" />
+    <Compile Include="DAS_Map\Train_smap.py" />
+    <Compile Include="DAS_Map\Train_helper.py" />
     <Compile Include="DAS_Unknown\DataReader.py" />
+    <Compile Include="DAS_Unknown\Model_bimap_middle.py" />
+    <Compile Include="DAS_Unknown\Model_bimap_small_bn_test.py" />
+    <Compile Include="DAS_Unknown\Model_bimap_small_bn.py" />
+    <Compile Include="DAS_Unknown\Model_bimap_small.py" />
+    <Compile Include="DAS_Unknown\Model_bimap_residual.py" />
     <Compile Include="DAS_Unknown\Model_bimap_from_trimap.py" />
     <Compile Include="DAS_Unknown\Model_helper.py" />
     <Compile Include="DAS_Unknown\Model_bimap.py" />
-    <Compile Include="DAS_Unknown\Model_trimap_2x.py" />
+    <Compile Include="DAS_Unknown\Model_trimap_cardinal.py" />
+    <Compile Include="DAS_Unknown\Model_trimap_m.py" />
+    <Compile Include="DAS_Unknown\Model_trimap.py" />
+    <Compile Include="DAS_Unknown\SaveVariables_nchw.py" />
     <Compile Include="DAS_Unknown\SaveVariables.py" />
     <Compile Include="DAS_Unknown\Test_DataReader.py" />
     <Compile Include="DAS_Unknown\Test_trimap.py" />
+    <Compile Include="DAS_Unknown\Test_final.py" />
     <Compile Include="DAS_Unknown\Test_bimap.py" />
-    <Compile Include="DAS_Unknown\Train_bimap_from_tri.py" />
+    <Compile Include="DAS_Unknown\Train_bimap_residual.py" />
     <Compile Include="DAS_Unknown\Train_bimap_from_trimap.py" />
     <Compile Include="DAS_Unknown\Train_bimap.py" />
     <Compile Include="DAS_Unknown\Train_helper.py" />
@@ -145,7 +161,18 @@
     <Compile Include="RF\TrainSkip3.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="ROI\DataReader.py" />
     <Compile Include="ROI\LinearRegressionTest2Vector.py" />
+    <Compile Include="ROI\Model_helper.py" />
+    <Compile Include="ROI\Model_roi.py" />
+    <Compile Include="ROI\Test_DataReader.py" />
+    <Compile Include="ROI\Test_Find_ROI_center.py" />
+    <Compile Include="ROI\Test_Find_ROI_Y.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ROI\Train_helper.py" />
+    <Compile Include="ROI\Train_roi_from_mask.py" />
+    <Compile Include="ROI\Train_roi.py" />
     <Compile Include="Trimap\DataReader.py">
       <SubType>Code</SubType>
     </Compile>
@@ -236,15 +263,18 @@
     <Folder Include="Color\weights\featureMap\" />
     <Folder Include="DAS_COLOR\test\" />
     <Folder Include="DAS_COLOR\weights\" />
+    <Folder Include="DAS_Map\weights\" />
     <Folder Include="DAS_Unknown\" />
     <Folder Include="DAS_Unknown\weights\" />
     <Folder Include="IQ_COLOR\" />
     <Folder Include="IQ_COLOR\weights\" />
     <Folder Include="BN\" />
+    <Folder Include="DAS_Map\" />
     <Folder Include="RF\" />
     <Folder Include="RF\weights\" />
     <Folder Include="Color\" />
     <Folder Include="DAS_COLOR\" />
+    <Folder Include="ROI\weights\" />
     <Folder Include="unsupervised\" />
     <Folder Include="ROI\" />
     <Folder Include="Trimap\" />

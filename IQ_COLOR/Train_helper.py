@@ -1,4 +1,4 @@
-import tensorflow as tf
+﻿import tensorflow as tf
 
 def getLossMSE_penalty(trimap, labels_node):    
     shape = tf.shape(trimap)
@@ -33,8 +33,7 @@ def getIoU(a,b):
     logits=tf.reshape(b, [n,-1])
     inter=tf.reduce_sum(tf.multiply(logits,trn_labels),axis=1)
     print ('inter',inter)
-    union=tf.reduce_sum(tf.subtract(tf.add(logits,trn_labels),tf.multiply(logits,trn_labels)),axis=1)
-    union=union+ 0.0001
+    union=tf.reduce_sum(tf.subtract(tf.add(logits,trn_labels),tf.multiply(logits,trn_labels)),axis=1)    
     iou = tf.reduce_mean(tf.divide(inter,union))
     return iou
 

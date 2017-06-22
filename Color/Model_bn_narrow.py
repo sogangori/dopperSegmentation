@@ -17,7 +17,7 @@ LABEL_SIZE_C = 2
 NUM_CHANNELS_In= 3
 pool_stride2 =[1, 2, 2, 1]
 pool_stride3 =[1, 3, 3, 1]
-depth0 = 6
+depth0 = 3
 
 #depth 1 : 86%, 82% loss 0.15x shape bad
 #depth 2, Aug x2 : 85%, 82% loss 0.114x shape good
@@ -86,6 +86,7 @@ def inference(inData, train,step):
     helper.isDrop = train
     helper.keep_prop = 0.6
     #Todo Error
+    
     #inData = tf.cond(train, lambda: helper.Gaussian_noise_Add(inData, 0.1, 0.2),lambda: tf.multiply(inData ,1.0))
     #if train and step > 2: inData = helper.Gaussian_noise_Add(inData, 0.1, 0.2)
     

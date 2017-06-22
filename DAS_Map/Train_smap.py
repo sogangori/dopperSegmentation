@@ -12,8 +12,8 @@ import tensorflow as tf
 from operator import or_
 from DataReader import DataReader
 import Train_helper as helper
-import Model_bimap as model 
-folder = "./DAS_Unknown/weights/"
+import Model_smap as model 
+folder = "./DAS_Map/weights/"
 hiddenImagePath = folder+"hidden/"
 ImagePath1 = folder+"bimap"
 ImagePath2 = folder+"final"
@@ -23,10 +23,10 @@ inImagePath = folder+"in"
 DataReader = DataReader()
 EVAL_FREQUENCY = 10
 AUGMENT = 1
-DATA_SIZE = 12 
+DATA_SIZE = 12
 BATCH_SIZE = np.int(DATA_SIZE)  
-NUM_EPOCHS = 5
-isNewTrain = True      
+NUM_EPOCHS = 100
+isNewTrain = not True      
 
 def main(argv=None):        
 
@@ -40,14 +40,22 @@ def main(argv=None):
   false_co = tf.constant(False)
   
   bimap = model.inference(X, IsTrain, Step)
+
+  src_shape = Y.get_shape().as_list()
+  dst_shape = bimap.get_shape().as_list()
+  Y_4d = tf.reshape(Y, [-1,src_shape[1] ,src_shape[2],1])
+  Y_s = helper.resize(Y_4d,dst_shape[1] ,dst_shape[2], interpol = 1)
+  Y_s = tf.round(Y_s)
+  Y_s = tf.reshape(Y_s, [-1,dst_shape[1] ,dst_shape[2]])
+  Y_s = tf.cast(Y_s, tf.int32)
   argMax = tf.cast( tf.arg_max(bimap,3), tf.int32)      
-  mean_iou = helper.getIoU(Y,argMax)  
-  entropy = helper.getEntropy(bimap, Y)    
+  mean_iou = helper.getIoU(Y_s,argMax)  
+  entropy = helper.getEntropy(bimap, Y_s)    
   loss = entropy + 1e-5 * helper.regularizer()    
   with tf.variable_scope('bimap'):
     batch = tf.Variable(0)
   LearningRate = 0.001
-  DecayRate = 0.9999
+  DecayRate = 0.99999
   
   learning_rate = tf.train.exponential_decay(
       LearningRate,  # Base learning rate.0.01
@@ -88,7 +96,7 @@ def main(argv=None):
           #  sess.run(optimizer, {X: batch_data_odd, Y: train_labels, IsTrain:True,Step:step})
           batch_data = train_data[:,:,:,start_offset:end_offset]
 
-          if AUGMENT<2:              
+          if AUGMENT<1:              
             feed_dict_flip = {X: np.fliplr(batch_data), Y: np.fliplr(train_labels), IsTrain:True,Step:step}      
             sess.run(optimizer, feed_dict_flip)    
             feed_dict_flip = {X: np.flipud(batch_data), Y: np.flipud(train_labels), IsTrain:True,Step:step}      

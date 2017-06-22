@@ -12,16 +12,15 @@ import tensorflow as tf
 from operator import or_
 from DataReader import DataReader
 import Train_helper as helper
-import Model_bimap_from_trimap as model 
+import Model_bimap_residual as model 
 import Model_trimap_2x as modelTrimap 
 folder = "./DAS_Unknown/weights/"
 hiddenImagePath = folder+"hidden/"
-ImagePath1 = folder+"bimap"
-ImagePath2 = folder+"final"
+ImagePath1 = folder+"bimap_res"
 
 DataReader = DataReader()
-EVAL_FREQUENCY = 20
-AUGMENT = 3
+EVAL_FREQUENCY = 10
+AUGMENT = 2
 DATA_SIZE = 12 
 BATCH_SIZE = np.int(DATA_SIZE)  
 NUM_EPOCHS = 1
@@ -38,11 +37,9 @@ def main(argv=None):
   Step = tf.placeholder(tf.int32)
   false_co = tf.constant(False)
   trimap = modelTrimap.inference(X, false_co, Step)
-  bimap = model.inference(trimap, IsTrain, Step)
-  argMax = tf.cast( tf.arg_max(bimap,3), tf.int32)    
-  composit_mask = helper.GetMaskWithBimapTrimap(bimap, trimap)
+  bimap = model.inference(X, trimap, IsTrain, Step)
+  argMax = tf.cast( tf.arg_max(bimap,3), tf.int32)      
   mean_iou = helper.getIoU(Y,argMax)
-  composit_iou = helper.getIoU(Y,composit_mask)  
   entropy = helper.getLossMSE_focus_unknown(bimap, Y, trimap)    
   loss = entropy + 1e-5 * helper.regularizer()      
   
@@ -86,17 +83,17 @@ def main(argv=None):
           feed_dict = {X: batch_data[::-1], Y: train_labels[::-1], IsTrain:True,Step:step}
           _ = sess.run(optimizer, feed_dict)                          
           feed_dict = {X: batch_data, Y: train_labels, IsTrain:True,Step:step}      
-          _,l, iou,iou_comp,lr = sess.run([optimizer,entropy, mean_iou,composit_iou,learning_rate], feed_dict)
+          _,l, iou,lr = sess.run([optimizer,entropy, mean_iou,learning_rate], feed_dict)
           
           if iter % EVAL_FREQUENCY == 0:
             elapsed_time = time.time() - start_time
             start_time = time.time()
             now = strftime("%H:%M:%S", localtime())
             takes = 1000 * elapsed_time / EVAL_FREQUENCY
-            iou_valid,iou_valid_comp = sess.run([mean_iou,composit_iou], feed_dict_valid)           
+            iou_valid = sess.run(mean_iou, feed_dict_valid)           
                     
-            print('e%d,i%d,%.0fms,L:%.3f,IoU(t%.2f, tc%.2f, v%.2f, vc%.2f),lr %.4f, %s' % 
-                  (step, iter,takes,l,iou*100,iou_comp*100,iou_valid*100,iou_valid_comp*100,lr*100,now))   
+            print('e%d,i%d,%.0fms,L:%.3f,IoU(t%.2f, v%.2f),lr %.4f, %s' % 
+                  (step, iter,takes,l,iou*100,iou_valid*100,lr*100,now))   
           
             sys.stdout.flush()
             if lr==0 or l>20: 
@@ -114,11 +111,11 @@ def main(argv=None):
         save_path = saver_bimap.save(sess, model.modelName)
         print ('save_path', save_path)      
     
-    iou_valid,iou_valid_comp = sess.run([mean_iou,composit_iou], feed_dict_valid)           
-    iou_test,iou_test_comp,bimap_mask,final_mask = sess.run([mean_iou,composit_iou,bimap,composit_mask], feed_dict_test)
+    iou_valid= sess.run(mean_iou, feed_dict_valid)           
+    iou_test,bimap_mask = sess.run([mean_iou,bimap], feed_dict_test)
         
-    print('[END] IoU(tr %.2f, va %.2f, te %.2f)' % (iou_comp,iou_valid_comp,iou_test_comp))     
+    print('[END] IoU(tr %.2f, va %.2f, te %.2f)' % (iou,iou_valid,iou_test))     
     DataReader.SaveImage(bimap_mask[:,:,:,1],ImagePath1)
-    DataReader.SaveImage(final_mask,ImagePath2)
+    
 
 tf.app.run()

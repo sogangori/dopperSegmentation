@@ -20,6 +20,28 @@ def getEntropy(prediction,labels_node):
     entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits = prediction, labels = label_reshape)
     return  tf.reduce_mean(entropy)  
 
+def resize(src, dstH, dstW,interpol = 1):
+    
+    if interpol == 0: return tf.image.resize_nearest_neighbor(src, [dstH, dstW])
+    elif interpol == 1: return tf.image.resize_bilinear(src, [dstH, dstW])
+    else: return tf.image.resize_bicubic(src, [dstH, dstW])
+
+def getEntropy_Small(prediction,labels_node):    
+    src_shape = labels_node.get_shape().as_list()
+    dst_shape = prediction.get_shape().as_list()
+    labels_node_4d = tf.reshape(labels_node, [-1,src_shape[1] ,src_shape[2],1])
+    labels_node = resize(labels_node_4d,dst_shape[1] ,dst_shape[2], interpol = 0)
+    labels_node = tf.reshape(labels_node, [-1,dst_shape[1] ,dst_shape[2]])
+    labels_node = tf.cast(labels_node, tf.int32) 
+    prediction =  tf.reshape(prediction, [-1, dst_shape[3]])
+    label_reshape = tf.reshape(labels_node, [-1])
+    print ('prediction',prediction)
+    print ('labels_node',labels_node)
+    print ('labels_node_reshape',label_reshape)
+    
+    entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits = prediction, labels = label_reshape)
+    return  tf.reduce_mean(entropy)  
+
 
 def getLossMSE_penalty(trimap, labels_node):    
     shape = tf.shape(trimap)
@@ -51,6 +73,10 @@ def getLossMSE(bimap, labels_node):
     shape = tf.shape(bimap)
     label = tf.one_hot(labels_node,2)    
     error = tf.square(label - bimap)     
+    return tf.reduce_mean(error)
+
+def getMSE(Y, predict):      
+    error = tf.square(Y- predict)     
     return tf.reduce_mean(error)
 
 def getLoss_log(trimap, labels_node):    

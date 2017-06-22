@@ -13,7 +13,7 @@ from operator import or_
 from DataReader import DataReader
 import Train_helper as helper
 import Model_bimap as model 
-folder = "./DAS_Unknown/weights/"
+folder = "./DAS_Map/weights/"
 hiddenImagePath = folder+"hidden/"
 ImagePath1 = folder+"bimap"
 ImagePath2 = folder+"final"

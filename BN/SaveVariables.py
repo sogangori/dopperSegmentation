@@ -1,6 +1,6 @@
 ﻿import tensorflow as tf
 import numpy as np
-import Model_trimap as model 
+import Model_bn_narrow as model 
 import pickle
 
 sess = tf.Session()
@@ -16,7 +16,7 @@ for var in tf.trainable_variables():
     filters.append(filter)
     print (filter.shape)
 print ('filters', len(filters))
-name_of_file = 'variable_trimap.txt'
+name_of_file = 'variable.txt'
 file = open(name_of_file ,'w')
 
 #f = open(name_of_file,'wb')

@@ -12,13 +12,13 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 import Model_helper as helper
 
-modelName = "./DAS_Unknown/weights/bimap.pd"
-LABEL_SIZE_C = 2
-ensemble= 2
+modelName = "./DAS_Unknown/weights/trimapM.pd"
+LABEL_SIZE_C = 3
+ensemble= 12
 depth0 = ensemble
 pool_stride2 =[1, 2, 2, 1]
 
-with tf.variable_scope('bimap'):
+with tf.variable_scope('trimap'):
     conv_l0_weights  = tf.get_variable("w1", shape=[3, 3, ensemble, depth0*2], initializer =tf.contrib.layers.xavier_initializer())
     beta_l0 = tf.Variable(tf.constant(0.0, shape=[depth0*2]))
     gamma_l0 = tf.Variable(tf.constant(1.0, shape=[depth0*2]))
@@ -72,19 +72,18 @@ with tf.variable_scope('bimap'):
     gamma_l2 = tf.Variable(tf.constant(1.0, shape=[depth0])) 
 
     conv_l3_weights = tf.get_variable("l3", shape=[3, 3, depth0, LABEL_SIZE_C], initializer =tf.contrib.layers.xavier_initializer())
-    beta_l3 = tf.Variable(tf.constant(0.0, shape=[LABEL_SIZE_C]))
+    beta_l3 = tf.Variable(tf.constant(0.0, shape=[LABEL_SIZE_C]),trainable=True)
     gamma_l3 = tf.Variable(tf.constant(1.0, shape=[LABEL_SIZE_C])) 
 
 
 def inference(inData, train,step):
     helper.isDrop = train
     helper.isTrain = train
-    helper.keep_prop = 0.6
-    
-    pool = tf.nn.avg_pool(inData,pool_stride2,strides=pool_stride2,padding='SAME')       
-    pool = helper.Gaussian_noise_Add(pool, 0.1, 0.3)
+    helper.keep_prop = 0.7
+       
+    inData = helper.Gaussian_noise_Add(inData, 0.1, 0.4)
     #0
-    pool = helper.conv2dBN_Relu(pool,conv_l0_weights,beta_l0,gamma_l0)
+    pool = helper.conv2dBN_Relu(inData,conv_l0_weights,beta_l0,gamma_l0)
 
     #1
     pool = tf.nn.max_pool(pool,pool_stride2,strides=pool_stride2,padding='SAME')    
@@ -125,9 +124,9 @@ def inference(inData, train,step):
     pool = tf.nn.relu(tf.add(feature1, pool)) 
     pool = helper.conv2dBN(pool,conv_s2_weights,beta_s2,gamma_s2)        
     #11
-    #up_shape = feature0.get_shape().as_list()
-    #pool = helper.resize(pool, up_shape[1],up_shape[2])    
-    #pool = tf.nn.relu(tf.add(feature0, pool)) 
+    up_shape = feature0.get_shape().as_list()
+    pool = helper.resize(pool, up_shape[1],up_shape[2])    
+    pool = tf.nn.relu(tf.add(feature0, pool)) 
     #12
     pool = helper.conv2dBN_Relu(pool,conv_m2_weights,beta_m2,gamma_m2)
     #13

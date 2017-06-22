@@ -65,6 +65,52 @@ class DataReader():
         dst = src[:,startY:startY+dstH ,:]
         return dst
 
+    def GetLabel(self, count):
+        w = self.w
+        h = self.h
+        c = self.inC        
+        channel = self.channel
+        path = self.pathTrain
+       
+        list = glob.glob(path)                        
+        count = numpy.minimum(len(list), count)
+        print ("count", count)
+        
+        setOut = numpy.zeros(shape=(count,h,w), dtype=numpy.float32) 
+            
+        for n in range(0, count):
+            raw = np.fromfile(list[n], np.float32)  
+            print ('Read file as raw', count, n, raw.shape)
+            array = numpy.reshape(numpy.asarray(raw),[channel,h,w]);            
+            setOut[n][:]= array[0,:]
+        return setOut
+    
+    def GetNonZeroYH(self, src):
+        print ('src', np.shape(src))
+        src_col_sum = np.sum(src, axis=1)
+        print ('src_col_sum', np.shape(src_col_sum))
+    
+        h = len(src_col_sum)
+        y0 = 0
+        y1 = h
+        for y in range(h):
+            if src_col_sum[y]>0:
+                y0 = y
+                break
+        for y in range(y1):
+            idx = y1-y-1
+            if src_col_sum[idx]>0:
+                y1 = idx
+                break
+
+        print ('height: %d, y0~y1 = %d ~ %d' %(h, y0,y1))
+        roiY = (y0+y1)/2
+        roiH = y1-y0+1
+        normal_roiY = 1.0* roiY / h
+        normal_roiH = 1.0* roiH / h
+        print ('roiY:%d, roiH:%d,  normal : %g, %g' %(roiY,roiH,normal_roiY,normal_roiH))
+        return normal_roiY,normal_roiH
+
     def GetData(self, count):
         
         w = self.w
@@ -90,7 +136,7 @@ class DataReader():
             
             setOut[n][:]= array[0,:]
     
-        setIn = self.NormalizeAll(setIn)
+        #setIn = self.NormalizeAll(setIn)
         #setIn = self.CutHeight(setIn)
         #setOut = self.CutHeight(setOut)          
         return [setIn, setOut] 
@@ -165,15 +211,26 @@ class DataReader():
         in_val = setIn[:,:,:,offset0:offset1]
         in_test = setIn[:,:,:,offset1:]
                 
-        out_train = out_val = out_test = setOut        
-        in_train,out_train = self.Augment(in_train,out_train, aug)
+        in_train,out_train = self.Augment(in_train,setOut, aug)
 
-        half_offset = (int)(offset0/2)
-        in_train_0 = in_train[:,:,:,0:half_offset]
-        in_train_1 = in_train[:,:,:,half_offset:]
-        in_train = np.append(in_train_0,in_train_1,axis=0)
-        out_train = np.append(out_train,out_train,axis=0)
-        return in_train,out_train,in_val,out_val, in_test, out_test
+        #half_offset = (int)(offset0/2)
+        #in_train_0 = in_train[:,:,:,0:half_offset]
+        #in_train_1 = in_train[:,:,:,half_offset:]
+        #in_train = np.append(in_train_0,in_train_1,axis=0)
+        #out_train = np.append(out_train,out_train,axis=0)
+        return in_train,out_train,in_val,setOut,in_test,setOut
+
+    def GetROISet(self, count, aug, ensemble):
+        in_train,out_train,in_val,out_val, in_test, out_test = self.GetData3(count, aug, ensemble)
+
+        label_train = numpy.zeros(shape=(count*aug,2), dtype=numpy.float32)
+        label_val = numpy.zeros(shape=(count,2), dtype=numpy.float32)
+        for i in range(count*aug):
+            label_train[i]=self.GetNonZeroYH(out_train[i])
+        for i in range(count):            
+            label_val[i]=self.GetNonZeroYH(out_val[i])
+
+        return in_train,out_train,label_train,in_val,out_val,label_val,in_test,out_val,label_val  
 
     def GetDataS(self, count, aug, ensemble):        
         setIn, setOut = self.GetData(count)        
