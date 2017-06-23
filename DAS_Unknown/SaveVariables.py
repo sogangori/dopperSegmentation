@@ -1,6 +1,6 @@
 ﻿import tensorflow as tf
 import numpy as np
-import Model_trimap as model 
+import Model_trimap_normal as model 
 import pickle
 
 sess = tf.Session()

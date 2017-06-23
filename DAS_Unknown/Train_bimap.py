@@ -12,7 +12,7 @@ import tensorflow as tf
 from operator import or_
 from DataReader import DataReader
 import Train_helper as helper
-import Model_bimap as model 
+import Model_bimap_small_bn as model 
 folder = "./DAS_Unknown/weights/"
 hiddenImagePath = folder+"hidden/"
 ImagePath1 = folder+"bimap"
@@ -25,8 +25,8 @@ EVAL_FREQUENCY = 10
 AUGMENT = 1
 DATA_SIZE = 12 
 BATCH_SIZE = np.int(DATA_SIZE)  
-NUM_EPOCHS = 5
-isNewTrain = True      
+NUM_EPOCHS = 100
+isNewTrain = not True      
 
 def main(argv=None):        
 
@@ -46,7 +46,7 @@ def main(argv=None):
   loss = entropy + 1e-5 * helper.regularizer()    
   with tf.variable_scope('bimap'):
     batch = tf.Variable(0)
-  LearningRate = 0.001
+  LearningRate = 0.01
   DecayRate = 0.9999
   
   learning_rate = tf.train.exponential_decay(
@@ -81,11 +81,11 @@ def main(argv=None):
           start_offset = start_offsets[iter]
           end_offset = start_offset + ensemble
 
-          #if end_offset < train_data.shape[3]/2:
-          #  batch_data_even = train_data[:,:,:,::2][:,:,:,start_offset:end_offset]
-          #  sess.run(optimizer, {X: batch_data_even, Y: train_labels, IsTrain:True,Step:step})          
-          #  batch_data_odd = train_data[:,:,:,1::2][:,:,:,start_offset:end_offset]                      
-          #  sess.run(optimizer, {X: batch_data_odd, Y: train_labels, IsTrain:True,Step:step})
+          if end_offset < train_data.shape[3]/2:
+            batch_data_even = train_data[:,:,:,::2][:,:,:,start_offset:end_offset]
+            sess.run(optimizer, {X: batch_data_even, Y: train_labels, IsTrain:True,Step:step})          
+            batch_data_odd = train_data[:,:,:,1::2][:,:,:,start_offset:end_offset]                      
+            sess.run(optimizer, {X: batch_data_odd, Y: train_labels, IsTrain:True,Step:step})
           batch_data = train_data[:,:,:,start_offset:end_offset]
 
           if AUGMENT<2:              

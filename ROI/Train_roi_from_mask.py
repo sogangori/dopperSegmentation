@@ -12,7 +12,7 @@ import tensorflow as tf
 from operator import or_
 from DataReader import DataReader
 import Train_helper as helper
-import Model_roi as model 
+import Model_column as model 
 folder = model.folder
 ImagePath1 = folder+"bimap"
 DataReader = DataReader()
@@ -20,7 +20,7 @@ EVAL_FREQUENCY = 30
 AUGMENT = 1
 DATA_SIZE = 12
 BATCH_SIZE = np.int(DATA_SIZE)  
-NUM_EPOCHS = 1
+NUM_EPOCHS = 5
 isNewTrain = True      
 
 def main(argv=None):        
@@ -37,8 +37,7 @@ def main(argv=None):
   roi = model.inference(X, IsTrain, Step)   
   loss_y = tf.reduce_mean( tf.square( Y[:,0] - roi[:,0]))
   loss_h = tf.reduce_mean( tf.square( Y[:,1] - roi[:,1]))
-  #loss_y = tf.reduce_mean( tf.square( tf.sqrt(Y[:,0]) - tf.sqrt(roi[:,0])))
-  #loss_h = tf.reduce_mean( tf.square( tf.sqrt(Y[:,1]) - tf.sqrt(roi[:,1])))
+  
   entropy = loss_y + loss_h
   loss = entropy + 1e-8 * helper.regularizer()    
 

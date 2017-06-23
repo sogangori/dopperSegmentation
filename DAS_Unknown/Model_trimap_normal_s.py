@@ -12,44 +12,60 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 import Model_helper as helper
 
-modelName = "./DAS_Unknown/weights/bimap.pd"
-LABEL_SIZE_C = 2
-ensemble= 2
+modelName = "./DAS_Unknown/weights/nromalCH_s.pd"
+LABEL_SIZE_C = 3
+ensemble= 12
 depth0 = ensemble
 pool_stride2 =[1, 2, 2, 1]
 
-with tf.variable_scope('bimap'):
-    conv_l0_weights  = tf.get_variable("w1", shape=[3, 3, ensemble, depth0*2], initializer =tf.contrib.layers.xavier_initializer())
+with tf.variable_scope('trimap'):
+
+    beta_in = tf.constant(0.0, shape=[ensemble])
+    gamma_in = tf.constant(1.0, shape=[ensemble])
+
+    conv_l0_weights = tf.get_variable("w1", shape=[1, 1, ensemble, depth0*2], initializer =tf.contrib.layers.xavier_initializer())
     beta_l0 = tf.Variable(tf.constant(0.0, shape=[depth0*2]))
     gamma_l0 = tf.Variable(tf.constant(1.0, shape=[depth0*2]))
 
-    conv_m0_weights = tf.get_variable("m0", shape=[3, 3, depth0*2, depth0*3], initializer =tf.contrib.layers.xavier_initializer())
+    conv_b0_weights = tf.get_variable("b0", shape=[1, 1, depth0*2, depth0*1], initializer =tf.contrib.layers.xavier_initializer())
+    beta_b0 = tf.Variable(tf.constant(0.0, shape=[depth0*1]))
+    gamma_b0 = tf.Variable(tf.constant(1.0, shape=[depth0*1]))
+
+    conv_m0_weights = tf.get_variable("m0", shape=[3, 3, depth0*1, depth0*3], initializer =tf.contrib.layers.xavier_initializer())
     beta_m0 = tf.Variable(tf.constant(0.0, shape=[depth0*3]))
     gamma_m0 = tf.Variable(tf.constant(1.0, shape=[depth0*3]))
 
-    conv_s0_weights = tf.get_variable("s0", shape=[3, 3, depth0*3, depth0*4], initializer =tf.contrib.layers.xavier_initializer())
+    conv_c0_weights = tf.get_variable("c0", shape=[1, 1, depth0*3, depth0*2], initializer =tf.contrib.layers.xavier_initializer())
+    beta_c0 = tf.Variable(tf.constant(0.0, shape=[depth0*2]))
+    gamma_c0 = tf.Variable(tf.constant(1.0, shape=[depth0*2]))
+
+    conv_s0_weights = tf.get_variable("s0", shape=[3, 3, depth0*2, depth0*4], initializer =tf.contrib.layers.xavier_initializer())
     beta_s0 = tf.Variable(tf.constant(0.0, shape=[depth0*4]))
     gamma_s0 = tf.Variable(tf.constant(1.0, shape=[depth0*4]))
 
-    conv_t0_weights = tf.get_variable("t0", shape=[3, 3, depth0*4, depth0*5], initializer =tf.contrib.layers.xavier_initializer())
+    conv_d0_weights = tf.get_variable("d0", shape=[1, 1, depth0*4, depth0*3], initializer =tf.contrib.layers.xavier_initializer())
+    beta_d0 = tf.Variable(tf.constant(0.0, shape=[depth0*3]))
+    gamma_d0 = tf.Variable(tf.constant(1.0, shape=[depth0*3]))
+
+    conv_t0_weights = tf.get_variable("t0", shape=[3, 3, depth0*3, depth0*5], initializer =tf.contrib.layers.xavier_initializer())
     beta_t0 = tf.Variable(tf.constant(0.0, shape=[depth0*5]))
     gamma_t0 = tf.Variable(tf.constant(1.0, shape=[depth0*5])) 
 
-    conv_p0_weights = tf.get_variable("p0", shape=[3, 3, depth0*5, depth0*6], initializer =tf.contrib.layers.xavier_initializer())
+    conv_e0_weights = tf.get_variable("e0", shape=[1, 1, depth0*5, depth0*4], initializer =tf.contrib.layers.xavier_initializer())
+    beta_e0 = tf.Variable(tf.constant(0.0, shape=[depth0*4]))
+    gamma_e0 = tf.Variable(tf.constant(1.0, shape=[depth0*4]))
+
+    conv_p0_weights = tf.get_variable("p0", shape=[3, 3, depth0*4, depth0*6], initializer =tf.contrib.layers.xavier_initializer())
     beta_p0 = tf.Variable(tf.constant(0.0, shape=[depth0*6]))
     gamma_p0 = tf.Variable(tf.constant(1.0, shape=[depth0*6])) 
 
-    conv_x0_weights = tf.get_variable("x0", shape=[3, 3, depth0*6, depth0*7], initializer =tf.contrib.layers.xavier_initializer())
-    beta_x0 = tf.Variable(tf.constant(0.0, shape=[depth0*7]))
-    gamma_x0 = tf.Variable(tf.constant(1.0, shape=[depth0*7])) 
+    conv_f0_weights = tf.get_variable("f0", shape=[1, 1, depth0*6, depth0*5], initializer =tf.contrib.layers.xavier_initializer())
+    beta_f0 = tf.Variable(tf.constant(0.0, shape=[depth0*5]))
+    gamma_f0 = tf.Variable(tf.constant(1.0, shape=[depth0*5]))
 
-    conv_xx0_weights = tf.get_variable("xx0", shape=[3, 3, depth0*7, depth0*6], initializer =tf.contrib.layers.xavier_initializer())
-    beta_xx0 = tf.Variable(tf.constant(0.0, shape=[depth0*6]))
-    gamma_xx0 = tf.Variable(tf.constant(1.0, shape=[depth0*6])) 
-
-    conv_x2_weights = tf.get_variable("x2", shape=[3, 3, depth0*6, depth0*6], initializer =tf.contrib.layers.xavier_initializer())
-    beta_x2 = tf.Variable(tf.constant(0.0, shape=[depth0*6]))
-    gamma_x2 = tf.Variable(tf.constant(1.0, shape=[depth0*6])) 
+    conv_x0_weights = tf.get_variable("x0", shape=[3, 3, depth0*5, depth0*6], initializer =tf.contrib.layers.xavier_initializer())
+    beta_x0 = tf.Variable(tf.constant(0.0, shape=[depth0*6]))
+    gamma_x0 = tf.Variable(tf.constant(1.0, shape=[depth0*6])) 
 
     conv_p2_weights = tf.get_variable("p2", shape=[3, 3, depth0*6, depth0*5], initializer =tf.contrib.layers.xavier_initializer())
     beta_p2 = tf.Variable(tf.constant(0.0, shape=[depth0*5]))
@@ -79,40 +95,43 @@ with tf.variable_scope('bimap'):
 def inference(inData, train,step):
     helper.isDrop = train
     helper.isTrain = train
-    helper.keep_prop = 0.6
-    
-    pool = tf.nn.avg_pool(inData,pool_stride2,strides=pool_stride2,padding='SAME')       
-    pool = helper.Gaussian_noise_Add(pool, 0.1, 0.3)
+    helper.keep_prop = 0.7
+       
+    inData = helper.StdNormalizeAll(inData,beta_in,gamma_in)
+    pool = tf.nn.avg_pool(inData,pool_stride2,strides=pool_stride2,padding='SAME') 
+    pool = helper.Gaussian_noise_Add(pool, 0.1, 0.1)
     #0
     pool = helper.conv2dBN_Relu(pool,conv_l0_weights,beta_l0,gamma_l0)
 
     #1
-    pool = tf.nn.max_pool(pool,pool_stride2,strides=pool_stride2,padding='SAME')    
+    pool = tf.nn.max_pool(pool,pool_stride2,strides=pool_stride2,padding='SAME') 
+    pool = helper.conv2dBN_Relu(pool,conv_b0_weights,beta_b0,gamma_b0)   
     feature0 = pool = helper.conv2dBN_Relu(pool,conv_m0_weights,beta_m0,gamma_m0)   
 
     #2
-    pool = tf.nn.max_pool(pool,pool_stride2,strides=pool_stride2,padding='SAME')    
+    pool = tf.nn.max_pool(pool,pool_stride2,strides=pool_stride2,padding='SAME') 
+    pool = helper.conv2dBN_Relu(pool,conv_c0_weights,beta_c0,gamma_c0)   
     feature1 = pool = helper.conv2dBN_Relu(pool,conv_s0_weights,beta_s0,gamma_s0)   
 
     #3
     pool = tf.nn.max_pool(pool,pool_stride2,strides=pool_stride2,padding='SAME')    
+    pool = helper.conv2dBN_Relu(pool,conv_d0_weights,beta_d0,gamma_d0)    
     feature2 = pool = helper.conv2dBN_Relu(pool,conv_t0_weights,beta_t0,gamma_t0)    
 
     #4
-    pool = tf.nn.max_pool(pool,pool_stride2,strides=pool_stride2,padding='SAME')    
+    pool = tf.nn.max_pool(pool,pool_stride2,strides=pool_stride2,padding='SAME') 
+    pool = helper.conv2dBN_Relu(pool,conv_e0_weights,beta_e0,gamma_e0)   
     feature3 = pool = helper.conv2dBN_Relu(pool,conv_p0_weights,beta_p0,gamma_p0)    
     
     #5
     pool = tf.nn.max_pool(pool,pool_stride2,strides=pool_stride2,padding='SAME')    
+    pool = helper.conv2dBN_Relu(pool,conv_f0_weights,beta_f0,gamma_f0)    
     pool = helper.conv2dBN_Relu(pool,conv_x0_weights,beta_x0,gamma_x0)    
-    #6
-    pool = helper.conv2dBN(pool,conv_xx0_weights,beta_xx0,gamma_xx0)    
+ 
     #7
     up_shape = feature3.get_shape().as_list()
     pool = helper.resize(pool, up_shape[1],up_shape[2])    
-    pool = tf.nn.relu(tf.add(feature3, pool)) 
-    pool = helper.conv2dBN_Relu(pool,conv_x2_weights,beta_x2,gamma_x2)        
-    #8
+    pool = tf.nn.relu(tf.add(feature3, pool))     
     pool = helper.conv2dBN(pool,conv_p2_weights,beta_p2,gamma_p2)   
     #9
     up_shape = feature2.get_shape().as_list()
@@ -124,7 +143,10 @@ def inference(inData, train,step):
     pool = helper.resize(pool, up_shape[1],up_shape[2])    
     pool = tf.nn.relu(tf.add(feature1, pool)) 
     pool = helper.conv2dBN(pool,conv_s2_weights,beta_s2,gamma_s2)        
-  
+    #11
+    up_shape = feature0.get_shape().as_list()
+    pool = helper.resize(pool, up_shape[1],up_shape[2])    
+    pool = tf.nn.relu(tf.add(feature0, pool)) 
     #12
     pool = helper.conv2dBN_Relu(pool,conv_m2_weights,beta_m2,gamma_m2)
     #13

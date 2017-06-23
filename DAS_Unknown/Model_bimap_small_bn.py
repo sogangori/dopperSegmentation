@@ -14,7 +14,7 @@ import Model_helper as helper
 
 modelName = "./DAS_Unknown/weights/bimap_small_bn.pd"
 LABEL_SIZE_C = 2
-ensemble= 12
+ensemble= 3
 depth0 = ensemble
 pool_stride2 =[1, 2, 2, 1]
 
@@ -23,21 +23,27 @@ with tf.variable_scope('bimap'):
     beta_l0 = tf.Variable(tf.constant(0.0, shape=[depth0*2]))
     gamma_l0 = tf.Variable(tf.constant(1.0, shape=[depth0*2]))
     
-    conv_m0_weights = tf.get_variable("m0", shape=[3, 3, depth0*2, depth0*4], initializer =tf.contrib.layers.xavier_initializer())
-    beta_m0 = tf.Variable(tf.constant(0.0, shape=[depth0*4]))
-    gamma_m0 = tf.Variable(tf.constant(1.0, shape=[depth0*4]))
+    conv_m0_weights = tf.get_variable("m0", shape=[3, 3, depth0*2, depth0*3], initializer =tf.contrib.layers.xavier_initializer())
+    beta_m0 = tf.Variable(tf.constant(0.0, shape=[depth0*3]))
+    gamma_m0 = tf.Variable(tf.constant(1.0, shape=[depth0*3]))
     
-    conv_s0_weights = tf.get_variable("s0", shape=[3, 3, depth0*4, LABEL_SIZE_C], initializer =tf.contrib.layers.xavier_initializer())
-    beta_s0 = tf.Variable(tf.constant(0.0, shape=[LABEL_SIZE_C]))    
-    gamma_s0 = tf.Variable(tf.constant(1.0, shape=[LABEL_SIZE_C]))    
+    conv_s0_weights = tf.get_variable("s0", shape=[3, 3, depth0*3, depth0*4], initializer =tf.contrib.layers.xavier_initializer())
+    beta_s0 = tf.Variable(tf.constant(0.0, shape=[depth0*4]))    
+    gamma_s0 = tf.Variable(tf.constant(1.0, shape=[depth0*4]))    
+
+    conv_d0_weights = tf.get_variable("d0", shape=[3, 3, depth0*4, LABEL_SIZE_C], initializer =tf.contrib.layers.xavier_initializer())
+    beta_d0 = tf.Variable(tf.constant(0.0, shape=[LABEL_SIZE_C]))    
+    gamma_d0 = tf.Variable(tf.constant(1.0, shape=[LABEL_SIZE_C])) 
 
 def inference(inData, train,step):
     helper.isDrop = train
     helper.isTrain = train
-    helper.keep_prop = 0.99
+    helper.keep_prop = 0.6
         
+    pool = tf.nn.avg_pool(inData,pool_stride2,strides=pool_stride2,padding='SAME')    
+    pool = helper.Gaussian_noise_Add(pool, 0.1, 0.3)
     #0    
-    pool = helper.conv2dBN_Relu(inData,conv_l0_weights,beta_l0,gamma_l0)
+    pool = helper.conv2dBN_Relu(pool,conv_l0_weights,beta_l0,gamma_l0) 
     
     #1
     pool = tf.nn.max_pool(pool,pool_stride2,strides=pool_stride2,padding='SAME')    
@@ -46,6 +52,9 @@ def inference(inData, train,step):
     #2
     pool = tf.nn.max_pool(pool,pool_stride2,strides=pool_stride2,padding='SAME')    
     pool = helper.conv2dBN_Relu(pool,conv_s0_weights,beta_s0,gamma_s0) 
+
+    pool = tf.nn.max_pool(pool,pool_stride2,strides=pool_stride2,padding='SAME')    
+    pool = helper.conv2dBN_Relu(pool,conv_d0_weights,beta_d0,gamma_d0) 
 
     input_shape = inData.get_shape().as_list()
     pool = helper.resize(pool,input_shape[1] ,input_shape[2])

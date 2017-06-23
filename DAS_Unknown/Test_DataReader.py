@@ -17,7 +17,7 @@ def Test_Aug():
     #trainData.SaveAsImageByChannel(inData, "./DAS_COLOR/weights/in",)
 
 def Test_validate():
-    in_train,out_train,in_val,out_val, in_test, out_test = trainData.GetData3(1,1,12);
+    in_train,out_train,in_val,out_val, in_test, out_test = trainData.GetData3(24,1,12);
 
     print ('in_train',in_train.shape)
     print ('out_train',out_train.shape)

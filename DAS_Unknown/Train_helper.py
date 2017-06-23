@@ -122,6 +122,27 @@ def returnZero():
 def regularizer():
     regula=0    
     for var in tf.trainable_variables():        
-        regula += tf.cond(tf.rank(var) > 2, lambda: tf.constant(0.0), lambda: tf.nn.l2_loss(var))
+        regula += tf.cond(tf.rank(var) > 2, lambda: tf.nn.l2_loss(var), lambda: tf.constant(0.0))
     return regula
 
+def GetPruningIndex(src,std_cut):
+    src_shape = tf.shape(src)
+    src = tf.reshape(src,[-1])
+    batch_mean, batch_var = tf.nn.moments(x = src,axes=[0])
+    batch_std = tf.sqrt(batch_var)
+    #print ('mean, var', p(batch_mean),p( batch_var),p( tf.sqrt(batch_var)))
+    cut0 = batch_mean - batch_std * std_cut
+    cut1 = batch_mean + batch_std * std_cut
+    #print ('cut', p(cut0), p(cut1))
+    prun_index0 = tf.cast(src<cut0, tf.float32)
+    prun_index1 = tf.cast(src>cut1, tf.float32)
+    prun_index =  tf.add(prun_index0, prun_index1)
+    return tf.reshape(prun_index,src_shape)
+
+def Pruning(variables,  pruning_masks):
+    k=0
+    
+    for var,pruning_mask in zip(variables,pruning_masks): 
+        k+=1
+        var = tf.multiply(var, pruning_mask)
+    return k

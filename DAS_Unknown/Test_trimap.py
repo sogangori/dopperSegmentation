@@ -12,13 +12,14 @@ import tensorflow as tf
 from operator import or_
 from DataReader import DataReader
 import Train_helper as helper
-import Model_trimap as model 
+import Model_trimap_normal_s as model 
 folder = "./DAS_Unknown/weights/"
 
-predictImagePath = folder+"predict"
-predictImagePath2 = folder+"tri_bimap"
+ImagePath1 = folder+"trimap"
+ImagePath2 = folder+"unknown"
+ImagePath3 = folder+"fore"
 DataReader = DataReader()
-DATA_SIZE = 12
+DATA_SIZE = 24
 
 def main(argv=None):        
 
@@ -36,6 +37,7 @@ def main(argv=None):
   known = tf.cast( argMax < 2, tf.float32)  
   unknown = tf.cast( argMax > 1, tf.float32)  
   background = tf.cast( argMax < 1, tf.float32)
+  foreground = tf.ones_like(argMax, tf.float32) - background -  unknown
   unknown_mean = tf.reduce_mean(unknown)  
   background_mean = tf.reduce_mean(background)  
   foreground_mean = 1.0 - unknown_mean - background_mean
@@ -65,14 +67,13 @@ def main(argv=None):
     elapsed_time = time.time() - start_time        
                 
     print('%.0f ms, trimap(%.1f, %.1f, %.1f), L:%g, IoU_tri(%g), IoU(%g), Iou_k:%g' % 
-            (elapsed_time,back*100,fore*100,unkno*100,l,iou_tri,iou*100, iou_known*100))   
-          
-    sys.stdout.flush()
+            (elapsed_time,back*100,fore*100,unkno*100,l,iou_tri,iou*100, iou_known*100)) 
     
-    tri_bimap, trimap_mask,unknown_mask = sess.run([argMax_trimap,trimap,unknown], feed_dict= feed_dict_test)    
-    DataReader.SaveAsImage(unknown_mask, predictImagePath, trimap_mask.shape[0])    
+    tri_bimap, trimap_mask,foreground_mask, unknown_mask = sess.run([argMax_trimap,trimap,foreground, unknown], feed_dict= feed_dict_test)    
     print ('trimap_mask',trimap_mask.shape)
-    DataReader.SaveImage(trimap_mask,predictImagePath)
-    DataReader.SaveImage(tri_bimap,predictImagePath2)
+    #DataReader.SaveImage(tri_bimap,ImagePath1)
+    DataReader.SaveImage(trimap_mask,ImagePath1)
+    DataReader.SaveAsImage(unknown_mask, ImagePath2, DATA_SIZE)    
+    DataReader.SaveAsImage(foreground_mask, ImagePath3, DATA_SIZE)        
 
 tf.app.run()

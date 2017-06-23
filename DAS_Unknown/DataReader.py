@@ -13,8 +13,8 @@ class DataReader():
     #pathTrain = folder +"/das/*.dat"
     #pathTrain = folder +"/das_threshold/*.dat"
     
-    channel = 301
-    inC = 300
+    channel = 171
+    inC = channel - 1
     w = 256
     h = 416
     startY = 0
@@ -89,10 +89,7 @@ class DataReader():
                 setIn[n][:,:,ch]= array[1+ch,:]                
             
             setOut[n][:]= array[0,:]
-    
-        setIn = self.NormalizeAll(setIn)
-        #setIn = self.CutHeight(setIn)
-        #setOut = self.CutHeight(setOut)          
+                     
         return [setIn, setOut] 
 
     def Augment(self, src0, src1, aug):
@@ -156,6 +153,9 @@ class DataReader():
 
     def GetData3(self, count, aug, ensemble):        
         setIn, setOut = self.GetData(count)        
+        #setIn = self.NormalizeAll(setIn)
+        #setIn = self.CutHeight(setIn)
+        #setOut = self.CutHeight(setOut) 
         count = setIn.shape[3]
         
         offset0 = count - ensemble * 2
@@ -168,11 +168,11 @@ class DataReader():
         out_train = out_val = out_test = setOut        
         in_train,out_train = self.Augment(in_train,out_train, aug)
 
-        half_offset = (int)(offset0/2)
-        in_train_0 = in_train[:,:,:,0:half_offset]
-        in_train_1 = in_train[:,:,:,half_offset:]
-        in_train = np.append(in_train_0,in_train_1,axis=0)
-        out_train = np.append(out_train,out_train,axis=0)
+        #half_offset = (int)(offset0/2)
+        #in_train_0 = in_train[:,:,:,0:half_offset]
+        #in_train_1 = in_train[:,:,:,half_offset:]
+        #in_train = np.append(in_train_0,in_train_1,axis=0)
+        #out_train = np.append(out_train,out_train,axis=0)
         return in_train,out_train,in_val,out_val, in_test, out_test
 
     def GetDataS(self, count, aug, ensemble):        
@@ -205,7 +205,7 @@ class DataReader():
     
     def SaveAsImage(self, src, filePath, count = 1):
         ext = ".png"        
-        print ("SaveAsImage","count:", count, src.shape, filePath, ext)
+        print ("SaveAsImage","count:", count, src.size, src.shape, filePath, ext)
         src = numpy.reshape(src, [count,self.dstH,self.w])
         for i in range(0, count):
             

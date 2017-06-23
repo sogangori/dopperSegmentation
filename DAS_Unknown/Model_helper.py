@@ -74,6 +74,12 @@ def StdNormalize(src, beta,gamma):
     out = tf.nn.batch_normalization(x=src, mean=batch_mean, variance=batch_var,offset=beta,scale=gamma,variance_epsilon=1e-3)    
     return tf.nn.relu(out) 
 
+def StdNormalizeAll(src, beta,gamma):
+    batch_mean, batch_var = tf.nn.moments(x=src, axes=[0,1,2,3])
+    print ('#### StdNormalizeAll',batch_mean,batch_var)
+    out = tf.nn.batch_normalization(x=src, mean=batch_mean, variance=batch_var,offset=beta,scale=gamma,variance_epsilon=1e-3)    
+    return tf.nn.relu(out)
+
 def batchNormal(src, beta,gamma):
     batch_mean, batch_var = tf.nn.moments(x=src,axes=[0,1,2])
     out = tf.nn.batch_normalization(x=src, mean=batch_mean, variance=batch_var,offset=beta,scale=gamma,variance_epsilon=1e-3)    
